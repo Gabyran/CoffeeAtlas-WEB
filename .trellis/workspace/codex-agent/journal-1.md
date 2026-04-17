@@ -7,38 +7,33 @@
 
 
 
-## Session 1: Miniprogram discovery and Trellis spec refresh
+## Session 1: Miniprogram discovery flow refinement
 
 **Date**: 2026-03-30
-**Task**: Miniprogram discovery and Trellis spec refresh
+**Task**: Miniprogram discovery flow refinement
 **Package**: miniprogram
 **Branch**: `main`
 
 ### Summary
 
-(Add summary)
+Refined the all-beans discover flow and catalog filtering behavior, and updated miniprogram-side tests around guided discover and Supabase catalog reads.
 
 ### Main Changes
 
-- Swapped the Taobao sync transport in `apps/api/lib/taobao-sync/mcp-client.ts` from the earlier MCP-style wrapper to direct `taobao-native` CLI execution, with request serialization, output parsing, timeout handling, and clearer error reporting.
-- Updated `apps/api/lib/taobao-sync/sync.ts` so arrival collection first opens the shop `上新` / `新品` tab and reads products there. Only when that tab is unavailable or empty does it fall back to the full listing flow.
-- Limited pre-detail duplicate skipping to the listing fallback path. Items discovered from the `上新` tab now still enter detail parsing, which avoids dropping genuinely new products just because a normalized title already exists in the shop listing table.
-- Added a regression test in `apps/api/tests/taobao-sync.test.ts` to lock the new behavior: listing mode may skip tracked items before detail, new-arrivals mode must not.
-- Verified with live runs and database inspection that the updated flow was actively processing products from the `上新` tab instead of stalling in the old comparison logic.
+- Refined `apps/miniprogram/src/pages/all-beans/index.tsx` and `guided-discover.ts` so discover results and optional selection steps behave more predictably in the page flow.
+- Adjusted `apps/miniprogram/src/services/catalog-supabase.ts` to better support the updated discover and filtering behavior.
+- Updated `apps/miniprogram/tests/guided-discover.test.ts` and `apps/miniprogram/tests/catalog-supabase.test.ts` to cover the changed miniprogram behavior.
 
 ### Git Commits
 
 | Hash | Message |
 |------|---------|
-| `cdc7a71` | (see git log) |
+| `cdc7a71` | Refine miniprogram discovery flow and Taobao OCR review |
 
 ### Testing
 
-- [OK] `pnpm --filter @coffeeatlas/api test`
-- [OK] `pnpm --filter @coffeeatlas/api typecheck`
-- [OK] `pnpm --filter @coffeeatlas/api lint`
-- [OK] Live single-shop run: `pnpm --filter @coffeeatlas/api sync:taobao:shop -- --roaster-name 有容乃大`
-- [OK] Verified job `6e9c5717-407a-455f-a99e-a43b2e5faf67` completed with `processedRows=30`, `insertedRoasterBeans=3`, `updatedRoasterBeans=13`, `failedShops=0`
+- Updated automated coverage in `apps/miniprogram/tests/guided-discover.test.ts`
+- Updated automated coverage in `apps/miniprogram/tests/catalog-supabase.test.ts`
 
 ### Status
 
@@ -53,32 +48,30 @@
 
 **Date**: 2026-03-30
 **Task**: API Taobao OCR review tooling
-**Package**: miniprogram
+**Package**: api
 **Branch**: `main`
 
 ### Summary
 
-(Add summary)
+Added OCR review rendering helpers for Taobao sync conflicts, so review output can be generated and prioritized without mixing that logic into the main sync path.
 
 ### Main Changes
 
 | Area | Description |
 |------|-------------|
-| Taobao Preflight | Added a preflight step that probes Taobao desktop availability, launches the app when it is not running, and fails early on login or captcha risk signals. |
-| Daily Sync | Moved daily Taobao sync orchestration into reusable code and made the daily script print `preflight` status together with sync summary output. |
-| Verification | Added automated tests for daily sync orchestration and desktop preflight, then ran `pnpm --filter @coffeeatlas/api test`, `typecheck`, and `lint`. |
+| Review Builder | Added `apps/api/lib/taobao-sync/review.ts` to prepare OCR review items and conflict ordering. |
+| Review Renderer | Added `apps/api/scripts/render-taobao-ocr-review.ts` so review output can be generated from sync data in a script-friendly format. |
+| Verification | Added `apps/api/tests/taobao-ocr-review.test.ts` to lock review grouping and prioritization behavior. |
 
 ### Git Commits
 
 | Hash | Message |
 |------|---------|
-| `cdc7a71` | (see git log) |
+| `cdc7a71` | Refine miniprogram discovery flow and Taobao OCR review |
 
 ### Testing
 
-- [OK] `pnpm --filter @coffeeatlas/api test`
-- [OK] `pnpm --filter @coffeeatlas/api typecheck`
-- [OK] `pnpm --filter @coffeeatlas/api lint`
+- Updated automated coverage in `apps/api/tests/taobao-ocr-review.test.ts`
 
 ### Status
 
@@ -102,17 +95,21 @@ Updated all-beans discover so bean variety becomes an optional final filter step
 
 ### Main Changes
 
-(Add details)
+- Made bean variety an optional final selection in guided discover instead of a hard required step.
+- Tightened OCR review conflict prioritization and refreshed the rendering logic around those conflicts.
+- Updated miniprogram discover and catalog tests together with Taobao OCR review tests to match the new behavior.
 
 ### Git Commits
 
 | Hash | Message |
 |------|---------|
-| `262cd17` | (see git log) |
+| `262cd17` | Prioritize OCR review conflicts and add optional bean varieties |
 
 ### Testing
 
-- [OK] (Add test results)
+- Updated automated coverage in `apps/miniprogram/tests/guided-discover.test.ts`
+- Updated automated coverage in `apps/miniprogram/tests/catalog-supabase.test.ts`
+- Updated automated coverage in `apps/api/tests/taobao-ocr-review.test.ts`
 
 ### Status
 
@@ -136,17 +133,19 @@ Updated miniprogram catalog filtering so multi-value varieties and processes mat
 
 ### Main Changes
 
-(Add details)
+- Changed catalog filtering so process and variety fields support multi-value inclusion matching.
+- Refreshed discover option counts in `apps/miniprogram/src/services/catalog-supabase.ts` to stay aligned with the new filter behavior.
+- Expanded `apps/miniprogram/tests/catalog-supabase.test.ts` to cover the multi-value filter cases.
 
 ### Git Commits
 
 | Hash | Message |
 |------|---------|
-| `99398e7` | (see git log) |
+| `99398e7` | Support multi-value bean variety and process filters |
 
 ### Testing
 
-- [OK] (Add test results)
+- Updated automated coverage in `apps/miniprogram/tests/catalog-supabase.test.ts`
 
 ### Status
 
@@ -170,18 +169,20 @@ Added recent session memory to Trellis start context, documented copy-change and
 
 ### Main Changes
 
-(Add details)
+- Added recent session memory extraction in `.trellis/scripts/common/session_context.py` and covered it in `.trellis/tests/test_session_context_memory.py`.
+- Updated `.agents/skills/start/SKILL.md` and `AGENTS.md` so the session context and delivery rules are reflected in the working instructions.
+- Kept the all-beans guided discover files in sync with the new Trellis workflow expectations.
 
 ### Git Commits
 
 | Hash | Message |
 |------|---------|
-| `57533a6` | (see git log) |
-| `8189d15` | (see git log) |
+| `57533a6` | Add recent session memory to Trellis start context |
+| `8189d15` | Document copy-change and delivery reporting rules |
 
 ### Testing
 
-- [OK] (Add test results)
+- Updated `.trellis/tests/test_session_context_memory.py`
 
 ### Status
 
@@ -205,17 +206,22 @@ Replaced Taobao sync MCP transport with taobao-native, changed arrival collectio
 
 ### Main Changes
 
-(Add details)
+- Swapped `apps/api/lib/taobao-sync/mcp-client.ts` from the earlier wrapper path to direct `taobao-native` execution, with payload unwrap, timeout handling, and clearer tool failures.
+- Changed `apps/api/lib/taobao-sync/sync.ts` so arrivals first read the shop `上新` / `新品` tab and only fall back to listing mode when needed.
+- Added regression coverage in `apps/api/tests/taobao-sync.test.ts` for the new duplicate-skip behavior split between `new_arrivals` and `listing`.
 
 ### Git Commits
 
 | Hash | Message |
 |------|---------|
-| `fcf1e95` | (see git log) |
+| `fcf1e95` | Prioritize Taobao new-arrivals capture before listing fallback |
 
 ### Testing
 
-- [OK] (Add test results)
+- [OK] `pnpm --filter @coffeeatlas/api test`
+- [OK] `pnpm --filter @coffeeatlas/api typecheck`
+- [OK] `pnpm --filter @coffeeatlas/api lint`
+- [OK] Live single-shop run: `pnpm --filter @coffeeatlas/api sync:taobao:shop -- --roaster-name 有容乃大`
 
 ### Status
 
@@ -239,17 +245,21 @@ Added Taobao desktop preflight for daily sync, covered preflight and daily orche
 
 ### Main Changes
 
-(Add details)
+- Added `apps/api/lib/taobao-sync/preflight.ts` to probe current desktop state, auto-launch Taobao when needed, and reject login / captcha risk states before sync.
+- Extracted daily orchestration into `apps/api/lib/taobao-sync/daily.ts`, with arrivals-first execution and cleanup summary aggregation.
+- Added `apps/api/tests/taobao-preflight.test.ts` and `apps/api/tests/taobao-daily-sync.test.ts` to cover preflight and daily orchestration behavior.
 
 ### Git Commits
 
 | Hash | Message |
 |------|---------|
-| `fa06815` | (see git log) |
+| `fa06815` | Add Taobao desktop preflight to daily sync |
 
 ### Testing
 
-- [OK] (Add test results)
+- [OK] `pnpm --filter @coffeeatlas/api test`
+- [OK] `pnpm --filter @coffeeatlas/api typecheck`
+- [OK] `pnpm --filter @coffeeatlas/api lint`
 
 ### Status
 

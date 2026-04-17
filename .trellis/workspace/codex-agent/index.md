@@ -35,7 +35,7 @@
 | 4 | 2026-03-30 | Miniprogram multi-value bean filters | `99398e7` | `main` |
 | 3 | 2026-03-30 | Miniprogram optional bean varieties | `262cd17` | `main` |
 | 2 | 2026-03-30 | API Taobao OCR review tooling | `cdc7a71` | `main` |
-| 1 | 2026-03-30 | Miniprogram discovery and Trellis spec refresh | `cdc7a71` | `main` |
+| 1 | 2026-03-30 | Miniprogram discovery flow refinement | `cdc7a71` | `main` |
 <!-- @@@/auto:session-history -->
 
 ---

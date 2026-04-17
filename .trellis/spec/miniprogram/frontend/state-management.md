@@ -30,11 +30,14 @@
 
 - 普通页面参数：`useRouter().params`
 - tab 入口意图：`entry-intent-store.ts` + `entry-intent.ts` + `entry-transition.ts`
+- guided seed 一次性状态：`guided-seed-store.ts` + `guided-seed.ts`
 
 适用原则：
 
 - 能直接放 query 的简单值，走 route params
 - 需要跨 tab 保留“从哪个入口进入”的语义，走现有 `entry-intent`
+- `all-beans` 当前已经有两个一次性 key：`all_beans_entry_intent` 和 `all_beans_guided_seed`
+- 这两个 key 都属于“进入页面时消费一次就清理”的过渡状态，不属于长期持久化资料
 - 入口落地时，优先在页面内显式消费并清理一次性 intent，不要让旧 intent 影响下一次进入
 - 不要把一次性的入口意图长期留在 storage 里不清理
 
@@ -53,12 +56,17 @@
 - `pending_favorites`
 - `coffee_history`
 - `onboarding_profile`
+- `exploration_set`
+- `purchase_click_log`
+- `share_event_log`
 
 规则：
 
 - 新增持久化 key 时，先判断是不是已有 helper 可复用
 - 收藏、用户、onboarding 这类状态要通过 helper 读写，避免页面各自拼 shape
 - storage 里的数据结构一旦改动，要同步检查页面 consumer 和类型定义
+- `exploration_set` 当前会从浏览历史回填并去重，改这个 shape 时要同时检查历史兼容逻辑
+- 点击/分享日志是顺序追加数据，不要把它们改成页面各自散写的匿名数组
 
 ---
 
