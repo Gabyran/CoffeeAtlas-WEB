@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, Image } from '@tarojs/components';
-import Taro, { useDidShow, useReachBottom, useRouter } from '@tarojs/taro';
+import { useDidShow, useReachBottom } from '@tarojs/taro';
 import { getProcessBaseLabel, getProcessStyleLabel } from '@coffee-atlas/shared-types';
 
 import BeanCard from '../../components/BeanCard';
@@ -41,6 +41,7 @@ import {
   type GuidedProcessStyleChoiceId,
 } from './guided-discover';
 import { LIGHT_QUESTION_COPY } from './light-question-copy.ts';
+import { getCurrentPageParams, getStorageSync, showToast } from '../../utils/miniprogram-api.ts';
 import './index.scss';
 
 const PAGE_SIZE = 20;
@@ -73,12 +74,12 @@ function shouldExpandDiscoverPanelByDefault(landingMode: AllBeansLandingMode): b
 }
 
 export default function AllBeans() {
-  const router = useRouter();
+  const initialRouteParams = getCurrentPageParams();
   const initialEntryIntentPreview = resolveAllBeansRouteParams({
-    entry: Taro.getStorageSync('all_beans_entry_intent'),
+    entry: getStorageSync('all_beans_entry_intent'),
   }).landingMode;
   const initialRouteState = resolveAllBeansEntryState(
-    router.params,
+    initialRouteParams,
     initialEntryIntentPreview === 'guided' || initialEntryIntentPreview === 'direct' ? initialEntryIntentPreview : null
   );
   const [landingMode, setLandingMode] = useState<AllBeansLandingMode>(initialRouteState.landingMode);
@@ -260,7 +261,7 @@ export default function AllBeans() {
     } catch (error) {
       if (requestVersion !== requestVersionRef.current) return;
       setErrorMessage(getErrorMessage(error));
-      Taro.showToast({ title: LIGHT_QUESTION_COPY.miniprogram.guidedCard.ui.loadResultsError, icon: 'none' });
+      showToast({ title: LIGHT_QUESTION_COPY.miniprogram.guidedCard.ui.loadResultsError, icon: 'none' });
     } finally {
       if (requestVersion === requestVersionRef.current) {
         setLoadingState(false);
@@ -297,7 +298,7 @@ export default function AllBeans() {
     } catch (error) {
       if (requestVersion !== discoverRequestVersionRef.current) return;
       setDiscoverError(getErrorMessage(error));
-      Taro.showToast({ title: LIGHT_QUESTION_COPY.miniprogram.guidedCard.ui.loadDiscoverError, icon: 'none' });
+      showToast({ title: LIGHT_QUESTION_COPY.miniprogram.guidedCard.ui.loadDiscoverError, icon: 'none' });
     } finally {
       if (requestVersion === discoverRequestVersionRef.current) {
         setDiscoverLoading(false);
@@ -399,10 +400,11 @@ export default function AllBeans() {
   });
 
   useDidShow(() => {
+    const currentRouteParams = getCurrentPageParams();
     const entryIntent = consumeAllBeansEntryIntent();
     const guidedSeed = consumeAllBeansGuidedSeed();
     const transition = resolveAllBeansDidShowTransition({
-      params: router.params,
+      params: currentRouteParams,
       entryIntent,
       landingMode,
     });
@@ -507,7 +509,7 @@ export default function AllBeans() {
     if (!discoverPayload || discoverPayload.processBaseOptions.length === 0) return;
     const selection = resolveGuidedProcessSelection(choice, discoverPayload.processBaseOptions);
     if (!selection) {
-      Taro.showToast({ title: LIGHT_QUESTION_COPY.miniprogram.guidedCard.ui.noMatchingProcessBase, icon: 'none' });
+      showToast({ title: LIGHT_QUESTION_COPY.miniprogram.guidedCard.ui.noMatchingProcessBase, icon: 'none' });
       return;
     }
     setSelectedProcessBase(selection.id);
@@ -521,7 +523,7 @@ export default function AllBeans() {
     if (!discoverPayload || discoverPayload.processStyleOptions.length === 0) return;
     const selection = resolveGuidedProcessStyleSelection(choice, discoverPayload.processStyleOptions);
     if (!selection) {
-      Taro.showToast({ title: LIGHT_QUESTION_COPY.miniprogram.guidedCard.ui.noMatchingProcessStyle, icon: 'none' });
+      showToast({ title: LIGHT_QUESTION_COPY.miniprogram.guidedCard.ui.noMatchingProcessStyle, icon: 'none' });
       return;
     }
     setSelectedProcessStyle(selection.id);
@@ -534,7 +536,7 @@ export default function AllBeans() {
     if (!discoverPayload || discoverPayload.continentOptions.length === 0) return;
     const selection = resolveGuidedContinentSelection(choice, discoverPayload.continentOptions);
     if (!selection) {
-      Taro.showToast({ title: LIGHT_QUESTION_COPY.miniprogram.guidedCard.ui.noMatchingContinent, icon: 'none' });
+      showToast({ title: LIGHT_QUESTION_COPY.miniprogram.guidedCard.ui.noMatchingContinent, icon: 'none' });
       return;
     }
     setSelectedContinent(selection.id as DiscoverContinentId);

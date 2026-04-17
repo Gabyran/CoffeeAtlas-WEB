@@ -1,8 +1,8 @@
-import Taro from '@tarojs/taro';
 import { PostgrestClient } from '@supabase/postgrest-js';
 import { getCompiledEnv } from './compiled-env.ts';
+import { request as miniProgramRequest } from './miniprogram-api.ts';
 
-type RequestLike = typeof Taro.request;
+type RequestLike = typeof miniProgramRequest;
 type HeaderRecord = Record<string, string>;
 class MiniProgramHeaders {
   private readonly values = new Map<string, string>();
@@ -218,7 +218,7 @@ export function getSupabaseConfig() {
 
 export const hasSupabaseEnv = Boolean(getSupabaseConfig().url && getSupabaseConfig().anonKey);
 
-export function createSupabaseFetch(requestImpl: RequestLike = Taro.request): typeof fetch {
+export function createSupabaseFetch(requestImpl: RequestLike = miniProgramRequest): typeof fetch {
   ensureHeadersPolyfill();
 
   return (async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -227,7 +227,7 @@ export function createSupabaseFetch(requestImpl: RequestLike = Taro.request): ty
       method: getRequestMethod(input, init),
       header: getRequestHeaders(input, init),
       data: getRequestBody(input, init),
-    } as Taro.request.Option<any, any>);
+    } as any);
 
     return createFetchResponse({
       data: response.data,

@@ -1,10 +1,10 @@
-import Taro from '@tarojs/taro';
 import type {
   BeanFavoriteSnapshot as BeanSnapshot,
   RoasterFavoriteSnapshot as RoasterSnapshot,
 } from '@coffee-atlas/domain';
 
 import type { AuthUser } from '../types/index.ts';
+import { getStorageSync, removeStorageSync, setStorageSync } from './miniprogram-api.ts';
 const FAVORITES_KEY = 'coffee_favorites';
 const ROASTER_FAVORITES_KEY = 'roaster_favorites';
 const HISTORY_KEY = 'coffee_history';
@@ -50,35 +50,35 @@ export interface ExplorationSet {
 
 // Token
 export function getToken(): string | null {
-  return Taro.getStorageSync(TOKEN_KEY) || null;
+  return getStorageSync<string>(TOKEN_KEY) || null;
 }
 
 export function setToken(token: string): void {
-  Taro.setStorageSync(TOKEN_KEY, token);
+  setStorageSync(TOKEN_KEY, token);
 }
 
 export function clearToken(): void {
-  Taro.removeStorageSync(TOKEN_KEY);
+  removeStorageSync(TOKEN_KEY);
 }
 
 export function getStoredUser(): AuthUser | null {
-  return Taro.getStorageSync(USER_KEY) || null;
+  return getStorageSync<AuthUser>(USER_KEY) || null;
 }
 
 export function setStoredUser(user: AuthUser): void {
-  Taro.setStorageSync(USER_KEY, user);
+  setStorageSync(USER_KEY, user);
 }
 
 export function clearStoredUser(): void {
-  Taro.removeStorageSync(USER_KEY);
+  removeStorageSync(USER_KEY);
 }
 
 function getStoredList<T>(key: string): T[] {
-  return Taro.getStorageSync(key) || [];
+  return getStorageSync<T[]>(key) || [];
 }
 
 function setStoredList<T>(key: string, value: T[]): void {
-  Taro.setStorageSync(key, value);
+  setStorageSync(key, value);
 }
 
 function normalizeStoredText(value: unknown): string {
@@ -169,11 +169,11 @@ function deriveExplorationSetFromHistory(history: Array<Partial<HistoryItem>>): 
 }
 
 function readExplorationSet(): ExplorationSet | null {
-  return normalizeExplorationSet(Taro.getStorageSync(EXPLORATION_SET_KEY));
+  return normalizeExplorationSet(getStorageSync(EXPLORATION_SET_KEY));
 }
 
 function persistExplorationSet(explorationSet: ExplorationSet): void {
-  Taro.setStorageSync(EXPLORATION_SET_KEY, explorationSet);
+  setStorageSync(EXPLORATION_SET_KEY, explorationSet);
 }
 
 function mergeExplorationSetWithHistory(
@@ -225,7 +225,7 @@ function normalizeShareEventLogEntry(entry: ShareEventLogEntryInput): ShareEvent
 }
 
 function getStoredValidatedList<T>(key: string, isValid: (value: unknown) => value is T): T[] {
-  const value = Taro.getStorageSync(key);
+  const value = getStorageSync(key);
   if (!Array.isArray(value)) {
     return [];
   }
@@ -260,7 +260,7 @@ function addPendingFavorite(targetType: FavoriteTargetType, targetId: string): v
   const pending = getPendingFavorites();
   if (!pending.some((item) => item.targetType === targetType && item.targetId === targetId)) {
     pending.push({ targetType, targetId });
-    Taro.setStorageSync(PENDING_FAVORITES_KEY, pending);
+    setStorageSync(PENDING_FAVORITES_KEY, pending);
   }
 }
 
@@ -268,12 +268,12 @@ function removePendingFavorite(targetType: FavoriteTargetType, targetId: string)
   const pending = getPendingFavorites().filter(
     (item) => !(item.targetType === targetType && item.targetId === targetId)
   );
-  Taro.setStorageSync(PENDING_FAVORITES_KEY, pending);
+  setStorageSync(PENDING_FAVORITES_KEY, pending);
 }
 
 // 本地豆款收藏（未登录时使用）
 export function getBeanFavorites(): BeanSnapshot[] {
-  return Taro.getStorageSync(FAVORITES_KEY) || [];
+  return getStorageSync<BeanSnapshot[]>(FAVORITES_KEY) || [];
 }
 
 export function isBeanFavorite(id: string): boolean {
@@ -341,11 +341,11 @@ export interface PendingFavorite {
 }
 
 export function getPendingFavorites(): PendingFavorite[] {
-  return Taro.getStorageSync(PENDING_FAVORITES_KEY) || [];
+  return getStorageSync<PendingFavorite[]>(PENDING_FAVORITES_KEY) || [];
 }
 
 export function clearPendingFavorites(): void {
-  Taro.removeStorageSync(PENDING_FAVORITES_KEY);
+  removeStorageSync(PENDING_FAVORITES_KEY);
 }
 
 // 浏览历史
@@ -354,7 +354,7 @@ export interface HistoryItem extends BeanSnapshot {
 }
 
 export function getHistory(): HistoryItem[] {
-  return Taro.getStorageSync(HISTORY_KEY) || [];
+  return getStorageSync<HistoryItem[]>(HISTORY_KEY) || [];
 }
 
 export function getExplorationSet(): ExplorationSet {
@@ -384,13 +384,13 @@ export function setExplorationSet(explorationSet: ExplorationSet): void {
 }
 
 export function clearExplorationSet(): void {
-  Taro.removeStorageSync(EXPLORATION_SET_KEY);
+  removeStorageSync(EXPLORATION_SET_KEY);
 }
 
 export function addToHistory(bean: BeanSnapshot): void {
   const history = getHistory().filter((h) => h.id !== bean.id);
   history.unshift({ ...bean, viewedAt: Date.now() });
-  Taro.setStorageSync(HISTORY_KEY, history.slice(0, MAX_HISTORY));
+  setStorageSync(HISTORY_KEY, history.slice(0, MAX_HISTORY));
   updateExplorationSetFromBean(bean);
 }
 
@@ -406,11 +406,11 @@ export function recordPurchaseClick(entry: PurchaseClickLogEntryInput): void {
   }
 
   log.push(normalized);
-  Taro.setStorageSync(PURCHASE_CLICK_LOG_KEY, log);
+  setStorageSync(PURCHASE_CLICK_LOG_KEY, log);
 }
 
 export function clearPurchaseClickLog(): void {
-  Taro.removeStorageSync(PURCHASE_CLICK_LOG_KEY);
+  removeStorageSync(PURCHASE_CLICK_LOG_KEY);
 }
 
 export function getShareEventLog(): ShareEventLogEntry[] {
@@ -425,11 +425,11 @@ export function recordShareEvent(entry: ShareEventLogEntryInput): void {
   }
 
   log.push(normalized);
-  Taro.setStorageSync(SHARE_EVENT_LOG_KEY, log);
+  setStorageSync(SHARE_EVENT_LOG_KEY, log);
 }
 
 export function clearShareEventLog(): void {
-  Taro.removeStorageSync(SHARE_EVENT_LOG_KEY);
+  removeStorageSync(SHARE_EVENT_LOG_KEY);
 }
 
 export type OnboardingExperienceLevel = 'beginner' | 'intermediate';
@@ -457,14 +457,14 @@ function isOnboardingProfile(value: unknown): value is OnboardingProfile {
 }
 
 export function getOnboardingProfile(): OnboardingProfile | null {
-  const profile = Taro.getStorageSync(ONBOARDING_PROFILE_KEY);
+  const profile = getStorageSync<OnboardingProfile>(ONBOARDING_PROFILE_KEY);
   return isOnboardingProfile(profile) ? profile : null;
 }
 
 export function setOnboardingProfile(profile: OnboardingProfile): void {
-  Taro.setStorageSync(ONBOARDING_PROFILE_KEY, profile);
+  setStorageSync(ONBOARDING_PROFILE_KEY, profile);
 }
 
 export function clearOnboardingProfile(): void {
-  Taro.removeStorageSync(ONBOARDING_PROFILE_KEY);
+  removeStorageSync(ONBOARDING_PROFILE_KEY);
 }

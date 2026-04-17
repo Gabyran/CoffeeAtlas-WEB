@@ -11,6 +11,7 @@
     "sync:taobao:new": "node --experimental-strip-types scripts/sync-taobao-new-arrivals.ts",
     "sync:taobao:shop": "node --experimental-strip-types scripts/sync-taobao-single-shop.ts",
     "cleanup:taobao:offshelf": "node --experimental-strip-types scripts/cleanup-taobao-offshelf.ts",
+    "sync:taobao:daily": "node --experimental-strip-types scripts/daily-taobao-sync.ts",
     "import:roasters": "node --experimental-strip-types scripts/import-roasters.ts",
     "import:beans": "node --experimental-strip-types scripts/import-beans.ts",
     "import:sales": "node --experimental-strip-types scripts/import-sales.ts",

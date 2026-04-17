@@ -119,7 +119,27 @@ export function mergeVisibleProductsWithSearchProducts(args: {
   return [...merged.values()];
 }
 
+export type TaobaoShopCollectionMode = 'new_arrivals' | 'listing';
+
+type TaobaoShopCollectionResult = {
+  visibleTitles: string[];
+  visibleProducts: TaobaoStructuredProduct[];
+  shopText: string;
+  collectionMode: TaobaoShopCollectionMode;
+};
+
+type ShopCollectionStrategy = {
+  mode: TaobaoShopCollectionMode;
+  tabLabels: string[];
+  allowSearchFallback: boolean;
+};
+
+const SYNC_NEW_ARRIVAL_TAB_LABELS = ['上新', '新品', '新上架', '最新上架', '新品上架'];
 const SYNC_LISTING_TAB_LABELS = ['全部宝贝', '所有宝贝', '在售', '宝贝'];
+const SYNC_COLLECTION_STRATEGIES: ShopCollectionStrategy[] = [
+  { mode: 'new_arrivals', tabLabels: SYNC_NEW_ARRIVAL_TAB_LABELS, allowSearchFallback: false },
+  { mode: 'listing', tabLabels: SYNC_LISTING_TAB_LABELS, allowSearchFallback: true },
+];
 const SYNC_MAX_LISTING_ITEMS = 80;
 const SYNC_MAX_SCROLL_ROUNDS = 6;
 const SYNC_NO_GROWTH_LIMIT = 2;
@@ -220,6 +240,7 @@ async function openShopListingPage(args: {
   pageReadMaxLength: number;
   delayMinMs: number;
   delayMaxMs: number;
+  mode: TaobaoShopCollectionMode;
 }) {
   const { client, binding, pageReadMaxLength } = args;
 
@@ -235,7 +256,8 @@ async function openShopListingPage(args: {
   const initialRead = initialSnapshot.read;
   const initialScan = initialSnapshot.scan;
 
-  const listingTabIndex = extractFirstElementIndex(initialScan.dom, SYNC_LISTING_TAB_LABELS);
+  const strategy = SYNC_COLLECTION_STRATEGIES.find((item) => item.mode === args.mode) ?? SYNC_COLLECTION_STRATEGIES[1]!;
+  const listingTabIndex = extractFirstElementIndex(initialScan.dom, strategy.tabLabels);
   if (listingTabIndex !== null) {
     await client.clickElement({ index: listingTabIndex });
     await sleepWithJitter(args);
@@ -249,23 +271,25 @@ async function openShopListingPage(args: {
   });
   const firstRead = firstSnapshot.read;
   ensureSafePage([firstRead.title, firstRead.content]);
-  return firstRead;
+  return {
+    read: firstRead,
+    tabFound: listingTabIndex !== null,
+  };
 }
 
-async function collectShopProducts(args: {
+async function collectProductsFromCurrentPage(args: {
   client: TaobaoMcpClient;
   binding: TaobaoBinding;
   maxItemsPerShop: number;
   pageReadMaxLength: number;
   delayMinMs: number;
   delayMaxMs: number;
+  allowSearchFallback: boolean;
 }) {
   const { client, binding, pageReadMaxLength } = args;
   const productMap = new Map<string, TaobaoStructuredProduct>();
   const contentParts: string[] = [];
   let noGrowthRounds = 0;
-
-  await openShopListingPage(args);
 
   for (let round = 0; round <= SYNC_MAX_SCROLL_ROUNDS; round += 1) {
     if (round > 0) {
@@ -297,7 +321,7 @@ async function collectShopProducts(args: {
   }
 
   const visibleProducts = [...productMap.values()];
-  if (binding.searchKeyword) {
+  if (args.allowSearchFallback && binding.searchKeyword) {
     const searchResult = await client.searchProducts(binding.searchKeyword).catch(() => null);
     if (searchResult?.products?.length) {
       const fallbackProducts = mergeVisibleProductsWithSearchProducts({
@@ -320,11 +344,64 @@ async function collectShopProducts(args: {
   };
 }
 
+async function collectShopProducts(args: {
+  client: TaobaoMcpClient;
+  binding: TaobaoBinding;
+  maxItemsPerShop: number;
+  pageReadMaxLength: number;
+  delayMinMs: number;
+  delayMaxMs: number;
+}): Promise<TaobaoShopCollectionResult> {
+  for (const strategy of SYNC_COLLECTION_STRATEGIES) {
+    const opened = await openShopListingPage({
+      ...args,
+      mode: strategy.mode,
+    });
+
+    const collected = await collectProductsFromCurrentPage({
+      ...args,
+      allowSearchFallback: strategy.allowSearchFallback,
+    });
+
+    if (strategy.mode === 'new_arrivals') {
+      if (opened.tabFound && collected.visibleProducts.length > 0) {
+        return {
+          ...collected,
+          collectionMode: 'new_arrivals',
+        };
+      }
+      continue;
+    }
+
+    return {
+      ...collected,
+      collectionMode: strategy.mode,
+    };
+  }
+
+  return {
+    visibleTitles: [],
+    visibleProducts: [],
+    shopText: '',
+    collectionMode: 'listing',
+  };
+}
+
+export function shouldSkipTrackedProductBeforeDetail(
+  collectionMode: TaobaoShopCollectionMode,
+  existingProducts: Parameters<typeof shouldSkipTrackedShopListingProduct>[0],
+  product: Parameters<typeof shouldSkipTrackedShopListingProduct>[1]
+) {
+  if (collectionMode !== 'listing') return false;
+  return shouldSkipTrackedShopListingProduct(existingProducts, product);
+}
+
 async function enrichProductFromShopInteraction(args: {
   client: TaobaoMcpClient;
   binding: TaobaoBinding;
   product: TaobaoStructuredProduct;
   config: ReturnType<typeof getTaobaoSyncConfig>;
+  collectionMode: TaobaoShopCollectionMode;
 }) {
   if (args.product.productUrl && args.product.imageUrl && args.product.priceAmount !== null) {
     return { product: args.product, detailClickUsed: false };
@@ -362,6 +439,7 @@ async function enrichProductFromShopInteraction(args: {
     pageReadMaxLength: args.config.pageReadMaxLength,
     delayMinMs: args.config.delayMinMs,
     delayMaxMs: args.config.delayMaxMs,
+    mode: args.collectionMode,
   });
 
   return {
@@ -379,6 +457,7 @@ async function syncSingleProduct(args: {
   parsedCandidate: ParsedBeanCandidate;
   summary: TaobaoSyncSummary;
   config: ReturnType<typeof getTaobaoSyncConfig>;
+  collectionMode: TaobaoShopCollectionMode;
 }) {
   const { repository, importJobId, binding, summary, config } = args;
 
@@ -387,6 +466,7 @@ async function syncSingleProduct(args: {
     binding,
     product: args.product,
     config,
+    collectionMode: args.collectionMode,
   });
   const product = enrichment.product;
 
@@ -566,7 +646,7 @@ async function syncSingleShop(args: {
   const { client, repository, importJobId, binding, summary, config } = args;
 
   const trackedProducts = await repository.listTrackedRoasterBeansForBinding(binding);
-  const { visibleProducts } = await collectShopProducts({
+  const { visibleProducts, collectionMode } = await collectShopProducts({
     client,
     binding,
     maxItemsPerShop: config.maxItemsPerShop,
@@ -574,6 +654,7 @@ async function syncSingleShop(args: {
     delayMinMs: config.delayMinMs,
     delayMaxMs: config.delayMaxMs,
   });
+  console.log(`淘宝上新采集来源：${binding.roasterName} -> ${collectionMode === 'new_arrivals' ? '上新栏' : '全部宝贝(回退)'}`);
 
   const pendingProducts: Array<{ product: TaobaoStructuredProduct; parsedCandidate: ParsedBeanCandidate }> = [];
 
@@ -581,7 +662,7 @@ async function syncSingleShop(args: {
     summary.processedRows += 1;
 
     try {
-      if (shouldSkipTrackedShopListingProduct(trackedProducts, product)) {
+      if (shouldSkipTrackedProductBeforeDetail(collectionMode, trackedProducts, product)) {
         summary.skippedRows += 1;
         await repository.recordEvent({
           importJobId,
@@ -677,6 +758,7 @@ async function syncSingleShop(args: {
       pageReadMaxLength: config.pageReadMaxLength,
       delayMinMs: config.delayMinMs,
       delayMaxMs: config.delayMaxMs,
+      mode: collectionMode,
     });
   }
 
@@ -691,6 +773,7 @@ async function syncSingleShop(args: {
         parsedCandidate: pending.parsedCandidate,
         summary,
         config,
+        collectionMode,
       });
     } catch (error) {
       summary.errorRows += 1;
@@ -781,12 +864,14 @@ async function runTaobaoBindingsSync(args: {
 
   try {
     for (const binding of bindings) {
+      console.log(`淘宝上新同步店铺开始：${binding.roasterName} / ${binding.canonicalShopName}`);
       let success = false;
       for (let attempt = 0; attempt <= config.maxShopRetries; attempt += 1) {
         try {
           await syncSingleShop({ client, repository, importJobId, binding, summary, config });
           summary.processedShops += 1;
           success = true;
+          console.log(`淘宝上新同步店铺完成：${binding.roasterName}`);
           break;
         } catch (error) {
           await safeClosePage(client);
@@ -812,6 +897,7 @@ async function runTaobaoBindingsSync(args: {
 
           if (attempt >= config.maxShopRetries) {
             summary.failedShops += 1;
+            console.error(`淘宝上新同步店铺失败：${binding.roasterName} / ${binding.canonicalShopName}`);
             await repository.recordEvent({
               importJobId,
               sourceId: binding.sourceId,

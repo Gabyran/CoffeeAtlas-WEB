@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Component } from 'react';
 import { Text, View } from '@tarojs/components';
-import Taro from '@tarojs/taro';
 
 import { getBeanDiscover } from '../../services/api';
 import type { BeanDiscoverPayload, DiscoverContinentId, ProcessBaseId, ProcessStyleId } from '../../types';
 import { ORIGIN_ATLAS_COUNTRY_MAP } from '../../utils/origin-atlas';
+import { reLaunch, showToast } from '../../utils/miniprogram-api.ts';
 import { setAllBeansEntryIntent } from '../all-beans/entry-intent';
 import {
   buildGuidedDiscoverStep,
@@ -24,51 +24,105 @@ const SEARCH_DEBOUNCE_MS = 250;
 
 type DiscoverContinentKey = DiscoverContinentId | 'all';
 
+type OnboardingGuidedState = {
+  selectedProcessBase: string;
+  selectedProcessStyle: string;
+  selectedContinent: DiscoverContinentKey;
+  selectedCountry: string;
+  selectedVariety: string;
+  discoverPayload: BeanDiscoverPayload | null;
+  discoverLoading: boolean;
+  discoverError: string;
+};
+
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : '加载失败';
 }
 
-export default function OnboardingGuided() {
-  const [selectedProcessBase, setSelectedProcessBase] = useState<string>(ALL_DISCOVER_VALUE);
-  const [selectedProcessStyle, setSelectedProcessStyle] = useState<string>(ALL_DISCOVER_VALUE);
-  const [selectedContinent, setSelectedContinent] = useState<DiscoverContinentKey>(ALL_DISCOVER_VALUE);
-  const [selectedCountry, setSelectedCountry] = useState<string>(ALL_DISCOVER_VALUE);
-  const [selectedVariety, setSelectedVariety] = useState<string>(ALL_DISCOVER_VALUE);
+function hasSelectionChanged(
+  prevState: OnboardingGuidedState,
+  nextState: OnboardingGuidedState
+): boolean {
+  return (
+    prevState.selectedProcessBase !== nextState.selectedProcessBase ||
+    prevState.selectedProcessStyle !== nextState.selectedProcessStyle ||
+    prevState.selectedContinent !== nextState.selectedContinent ||
+    prevState.selectedCountry !== nextState.selectedCountry ||
+    prevState.selectedVariety !== nextState.selectedVariety
+  );
+}
 
-  const [discoverPayload, setDiscoverPayload] = useState<BeanDiscoverPayload | null>(null);
-  const [, setDiscoverLoading] = useState(false);
-  const [discoverError, setDiscoverError] = useState('');
-  const requestVersionRef = useRef(0);
+export default class OnboardingGuided extends Component<Record<string, never>, OnboardingGuidedState> {
+  state: OnboardingGuidedState = {
+    selectedProcessBase: ALL_DISCOVER_VALUE,
+    selectedProcessStyle: ALL_DISCOVER_VALUE,
+    selectedContinent: ALL_DISCOVER_VALUE,
+    selectedCountry: ALL_DISCOVER_VALUE,
+    selectedVariety: ALL_DISCOVER_VALUE,
+    discoverPayload: null,
+    discoverLoading: false,
+    discoverError: '',
+  };
 
-  const guidedDiscoverStep = useMemo(
-    () =>
-      buildGuidedDiscoverStep({
+  private requestVersion = 0;
+  private loadTimer: ReturnType<typeof setTimeout> | null = null;
+
+  componentDidMount(): void {
+    this.scheduleLoadDiscoverPayload();
+  }
+
+  componentDidUpdate(
+    _prevProps: Record<string, never>,
+    prevState: OnboardingGuidedState
+  ): void {
+    if (hasSelectionChanged(prevState, this.state)) {
+      this.scheduleLoadDiscoverPayload();
+    }
+
+    if (
+      prevState.discoverPayload !== this.state.discoverPayload ||
+      hasSelectionChanged(prevState, this.state)
+    ) {
+      this.reconcileSelections();
+    }
+  }
+
+  componentWillUnmount(): void {
+    if (this.loadTimer) {
+      clearTimeout(this.loadTimer);
+      this.loadTimer = null;
+    }
+    this.requestVersion += 1;
+  }
+
+  private scheduleLoadDiscoverPayload(): void {
+    if (this.loadTimer) {
+      clearTimeout(this.loadTimer);
+    }
+
+    this.loadTimer = setTimeout(() => {
+      void this.loadDiscoverPayload();
+    }, SEARCH_DEBOUNCE_MS);
+  }
+
+  private async loadDiscoverPayload(): Promise<void> {
+    const requestVersion = this.requestVersion + 1;
+    this.requestVersion = requestVersion;
+
+    this.setState({
+      discoverLoading: true,
+      discoverError: '',
+    });
+
+    try {
+      const {
         selectedProcessBase,
         selectedProcessStyle,
         selectedContinent,
         selectedCountry,
         selectedVariety,
-      }),
-    [selectedContinent, selectedCountry, selectedProcessBase, selectedProcessStyle, selectedVariety]
-  );
+      } = this.state;
 
-  const visibleGuidedProcessStyleChoices = useMemo(() => {
-    if (!discoverPayload || discoverPayload.processStyleOptions.length === 0) return [];
-
-    return GUIDED_PROCESS_STYLE_CHOICES.filter((choice) =>
-      Boolean(resolveGuidedProcessStyleSelection(choice.id, discoverPayload.processStyleOptions))
-    );
-  }, [discoverPayload]);
-
-  const canFinish = guidedDiscoverStep.step === 'done' || guidedDiscoverStep.step === 'variety';
-
-  const loadDiscoverPayload = async () => {
-    const requestVersion = requestVersionRef.current + 1;
-    requestVersionRef.current = requestVersion;
-    setDiscoverLoading(true);
-    setDiscoverError('');
-
-    try {
       const response = await getBeanDiscover({
         processBase:
           selectedProcessBase !== ALL_DISCOVER_VALUE ? (selectedProcessBase as ProcessBaseId) : undefined,
@@ -79,39 +133,50 @@ export default function OnboardingGuided() {
         variety: selectedVariety !== ALL_DISCOVER_VALUE ? selectedVariety : undefined,
       });
 
-      if (requestVersion !== requestVersionRef.current) return;
-      setDiscoverPayload(response);
+      if (requestVersion !== this.requestVersion) return;
+
+      this.setState({
+        discoverPayload: response,
+      });
     } catch (error) {
-      if (requestVersion !== requestVersionRef.current) return;
-      setDiscoverError(getErrorMessage(error));
-      Taro.showToast({ title: '探索加载失败', icon: 'none' });
+      if (requestVersion !== this.requestVersion) return;
+
+      this.setState({
+        discoverError: getErrorMessage(error),
+      });
+      showToast({ title: '探索加载失败', icon: 'none' });
     } finally {
-      if (requestVersion === requestVersionRef.current) {
-        setDiscoverLoading(false);
+      if (requestVersion === this.requestVersion) {
+        this.setState({
+          discoverLoading: false,
+        });
       }
     }
-  };
+  }
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      void loadDiscoverPayload();
-    }, SEARCH_DEBOUNCE_MS);
+  private reconcileSelections(): void {
+    const {
+      discoverPayload,
+      selectedProcessBase,
+      selectedProcessStyle,
+      selectedContinent,
+      selectedCountry,
+      selectedVariety,
+    } = this.state;
 
-    return () => clearTimeout(timer);
-  }, [selectedContinent, selectedCountry, selectedProcessBase, selectedProcessStyle, selectedVariety]);
-
-  useEffect(() => {
     if (!discoverPayload) return;
 
     if (
       selectedProcessBase !== ALL_DISCOVER_VALUE &&
       !discoverPayload.processBaseOptions.some((option) => option.id === selectedProcessBase)
     ) {
-      setSelectedProcessBase(ALL_DISCOVER_VALUE);
-      setSelectedProcessStyle(ALL_DISCOVER_VALUE);
-      setSelectedContinent(ALL_DISCOVER_VALUE);
-      setSelectedCountry(ALL_DISCOVER_VALUE);
-      setSelectedVariety(ALL_DISCOVER_VALUE);
+      this.setState({
+        selectedProcessBase: ALL_DISCOVER_VALUE,
+        selectedProcessStyle: ALL_DISCOVER_VALUE,
+        selectedContinent: ALL_DISCOVER_VALUE,
+        selectedCountry: ALL_DISCOVER_VALUE,
+        selectedVariety: ALL_DISCOVER_VALUE,
+      });
       return;
     }
 
@@ -119,10 +184,12 @@ export default function OnboardingGuided() {
       selectedProcessStyle !== ALL_DISCOVER_VALUE &&
       !discoverPayload.processStyleOptions.some((option) => option.id === selectedProcessStyle)
     ) {
-      setSelectedProcessStyle(ALL_DISCOVER_VALUE);
-      setSelectedContinent(ALL_DISCOVER_VALUE);
-      setSelectedCountry(ALL_DISCOVER_VALUE);
-      setSelectedVariety(ALL_DISCOVER_VALUE);
+      this.setState({
+        selectedProcessStyle: ALL_DISCOVER_VALUE,
+        selectedContinent: ALL_DISCOVER_VALUE,
+        selectedCountry: ALL_DISCOVER_VALUE,
+        selectedVariety: ALL_DISCOVER_VALUE,
+      });
       return;
     }
 
@@ -130,9 +197,11 @@ export default function OnboardingGuided() {
       selectedContinent !== ALL_DISCOVER_VALUE &&
       !discoverPayload.continentOptions.some((option) => option.id === selectedContinent)
     ) {
-      setSelectedContinent(ALL_DISCOVER_VALUE);
-      setSelectedCountry(ALL_DISCOVER_VALUE);
-      setSelectedVariety(ALL_DISCOVER_VALUE);
+      this.setState({
+        selectedContinent: ALL_DISCOVER_VALUE,
+        selectedCountry: ALL_DISCOVER_VALUE,
+        selectedVariety: ALL_DISCOVER_VALUE,
+      });
       return;
     }
 
@@ -140,8 +209,10 @@ export default function OnboardingGuided() {
       selectedCountry !== ALL_DISCOVER_VALUE &&
       !discoverPayload.countryOptions.some((option) => option.label === selectedCountry)
     ) {
-      setSelectedCountry(ALL_DISCOVER_VALUE);
-      setSelectedVariety(ALL_DISCOVER_VALUE);
+      this.setState({
+        selectedCountry: ALL_DISCOVER_VALUE,
+        selectedVariety: ALL_DISCOVER_VALUE,
+      });
       return;
     }
 
@@ -149,71 +220,109 @@ export default function OnboardingGuided() {
       selectedVariety !== ALL_DISCOVER_VALUE &&
       !discoverPayload.varietyOptions.some((option) => option.label === selectedVariety)
     ) {
-      setSelectedVariety(ALL_DISCOVER_VALUE);
+      this.setState({
+        selectedVariety: ALL_DISCOVER_VALUE,
+      });
     }
-  }, [discoverPayload, selectedContinent, selectedCountry, selectedProcessBase, selectedProcessStyle, selectedVariety]);
+  }
 
-  const handleGuidedProcessAnswer = (choice: (typeof GUIDED_PROCESS_CHOICES)[number]['id']) => {
+  private handleGuidedProcessAnswer = (choice: (typeof GUIDED_PROCESS_CHOICES)[number]['id']): void => {
+    const { discoverPayload } = this.state;
     if (!discoverPayload || discoverPayload.processBaseOptions.length === 0) return;
+
     const selection = resolveGuidedProcessSelection(choice, discoverPayload.processBaseOptions);
     if (!selection) {
-      Taro.showToast({ title: '当前没有匹配的基础处理法方向', icon: 'none' });
+      showToast({ title: '当前没有匹配的基础处理法方向', icon: 'none' });
       return;
     }
-    setSelectedProcessBase(selection.id);
-    setSelectedProcessStyle(ALL_DISCOVER_VALUE);
-    setSelectedContinent(ALL_DISCOVER_VALUE);
-    setSelectedCountry(ALL_DISCOVER_VALUE);
-    setSelectedVariety(ALL_DISCOVER_VALUE);
+
+    this.setState({
+      selectedProcessBase: selection.id,
+      selectedProcessStyle: ALL_DISCOVER_VALUE,
+      selectedContinent: ALL_DISCOVER_VALUE,
+      selectedCountry: ALL_DISCOVER_VALUE,
+      selectedVariety: ALL_DISCOVER_VALUE,
+    });
   };
 
-  const handleGuidedProcessStyleAnswer = (choice: (typeof GUIDED_PROCESS_STYLE_CHOICES)[number]['id']) => {
+  private handleGuidedProcessStyleAnswer = (choice: (typeof GUIDED_PROCESS_STYLE_CHOICES)[number]['id']): void => {
+    const { discoverPayload } = this.state;
     if (!discoverPayload || discoverPayload.processStyleOptions.length === 0) return;
+
     const selection = resolveGuidedProcessStyleSelection(choice, discoverPayload.processStyleOptions);
     if (!selection) {
-      Taro.showToast({ title: '当前没有匹配的处理风格方向', icon: 'none' });
+      showToast({ title: '当前没有匹配的处理风格方向', icon: 'none' });
       return;
     }
-    setSelectedProcessStyle(selection.id);
-    setSelectedContinent(ALL_DISCOVER_VALUE);
-    setSelectedCountry(ALL_DISCOVER_VALUE);
-    setSelectedVariety(ALL_DISCOVER_VALUE);
+
+    this.setState({
+      selectedProcessStyle: selection.id,
+      selectedContinent: ALL_DISCOVER_VALUE,
+      selectedCountry: ALL_DISCOVER_VALUE,
+      selectedVariety: ALL_DISCOVER_VALUE,
+    });
   };
 
-  const handleGuidedContinentAnswer = (choice: (typeof GUIDED_CONTINENT_CHOICES)[number]['id']) => {
+  private handleGuidedContinentAnswer = (choice: (typeof GUIDED_CONTINENT_CHOICES)[number]['id']): void => {
+    const { discoverPayload } = this.state;
     if (!discoverPayload || discoverPayload.continentOptions.length === 0) return;
+
     const selection = resolveGuidedContinentSelection(choice, discoverPayload.continentOptions);
     if (!selection) {
-      Taro.showToast({ title: '当前没有匹配的大洲方向', icon: 'none' });
+      showToast({ title: '当前没有匹配的大洲方向', icon: 'none' });
       return;
     }
-    setSelectedContinent(selection.id as DiscoverContinentId);
-    setSelectedCountry(ALL_DISCOVER_VALUE);
-    setSelectedVariety(ALL_DISCOVER_VALUE);
+
+    this.setState({
+      selectedContinent: selection.id as DiscoverContinentId,
+      selectedCountry: ALL_DISCOVER_VALUE,
+      selectedVariety: ALL_DISCOVER_VALUE,
+    });
   };
 
-  const handleCountrySelect = (value: string) => {
+  private handleCountrySelect = (value: string): void => {
     const atlasCountry = ORIGIN_ATLAS_COUNTRY_MAP.get(value) ?? null;
-    if (atlasCountry) {
-      setSelectedContinent(atlasCountry.continentId);
-    }
-    setSelectedCountry(value);
-    setSelectedVariety(ALL_DISCOVER_VALUE);
+    this.setState({
+      selectedContinent: atlasCountry ? atlasCountry.continentId : this.state.selectedContinent,
+      selectedCountry: value,
+      selectedVariety: ALL_DISCOVER_VALUE,
+    });
   };
 
-  const handleVarietySelect = (value: string) => {
-    setSelectedVariety(value);
+  private handleVarietySelect = (value: string): void => {
+    this.setState({
+      selectedVariety: value,
+    });
   };
 
-  const handleRestart = () => {
-    setSelectedProcessBase(ALL_DISCOVER_VALUE);
-    setSelectedProcessStyle(ALL_DISCOVER_VALUE);
-    setSelectedContinent(ALL_DISCOVER_VALUE);
-    setSelectedCountry(ALL_DISCOVER_VALUE);
-    setSelectedVariety(ALL_DISCOVER_VALUE);
+  private handleRestart = (): void => {
+    this.setState({
+      selectedProcessBase: ALL_DISCOVER_VALUE,
+      selectedProcessStyle: ALL_DISCOVER_VALUE,
+      selectedContinent: ALL_DISCOVER_VALUE,
+      selectedCountry: ALL_DISCOVER_VALUE,
+      selectedVariety: ALL_DISCOVER_VALUE,
+    });
   };
 
-  const handleConfirm = () => {
+  private handleConfirm = (): void => {
+    const {
+      selectedProcessBase,
+      selectedProcessStyle,
+      selectedContinent,
+      selectedCountry,
+      selectedVariety,
+    } = this.state;
+
+    const guidedDiscoverStep = buildGuidedDiscoverStep({
+      selectedProcessBase,
+      selectedProcessStyle,
+      selectedContinent,
+      selectedCountry,
+      selectedVariety,
+    });
+    const canFinish = guidedDiscoverStep.step === 'done' || guidedDiscoverStep.step === 'variety';
+
     if (!canFinish) return;
 
     setAllBeansGuidedSeed({
@@ -224,162 +333,191 @@ export default function OnboardingGuided() {
       variety: selectedVariety !== ALL_DISCOVER_VALUE ? selectedVariety : null,
     });
     setAllBeansEntryIntent('guided');
-    Taro.reLaunch({ url: ONBOARDING_ALL_BEANS_URL });
+    reLaunch({ url: ONBOARDING_ALL_BEANS_URL });
   };
 
-  return (
-    <View className="onboarding-guided">
-      <View className="onboarding-guided__frame">
-        <View className="onboarding-guided__header">
-          <Text className="onboarding-guided__title">{guidedDiscoverStep.title}</Text>
-          <Text className="onboarding-guided__description">{guidedDiscoverStep.description}</Text>
-        </View>
+  render() {
+    const {
+      selectedProcessBase,
+      selectedProcessStyle,
+      selectedContinent,
+      selectedCountry,
+      selectedVariety,
+      discoverPayload,
+      discoverError,
+    } = this.state;
 
-        <View className="onboarding-guided__body">
-          {discoverError ? <Text className="onboarding-guided__hint">{discoverError}</Text> : null}
+    const guidedDiscoverStep = buildGuidedDiscoverStep({
+      selectedProcessBase,
+      selectedProcessStyle,
+      selectedContinent,
+      selectedCountry,
+      selectedVariety,
+    });
 
-          {guidedDiscoverStep.step === 'process_base' ? (
-            discoverPayload && discoverPayload.processBaseOptions.length > 0 ? (
-              <View className="onboarding-guided__choices">
-                {GUIDED_PROCESS_CHOICES.map((choice) => (
-                  <View
-                    key={choice.id}
-                    className="onboarding-guided__choice"
-                    hoverClass="onboarding-guided__choice--active"
-                    hoverStartTime={20}
-                    hoverStayTime={70}
-                    onClick={() => handleGuidedProcessAnswer(choice.id)}
-                  >
-                    <Text className="onboarding-guided__choice-title">{choice.title}</Text>
-                    <Text className="onboarding-guided__choice-description">{choice.description}</Text>
-                  </View>
-                ))}
-              </View>
-            ) : (
-              <Text className="onboarding-guided__hint">正在准备基础处理法选项...</Text>
-            )
-          ) : null}
+    const visibleGuidedProcessStyleChoices =
+      !discoverPayload || discoverPayload.processStyleOptions.length === 0
+        ? []
+        : GUIDED_PROCESS_STYLE_CHOICES.filter((choice) =>
+            Boolean(resolveGuidedProcessStyleSelection(choice.id, discoverPayload.processStyleOptions))
+          );
 
-          {guidedDiscoverStep.step === 'process_style' ? (
-            discoverPayload && visibleGuidedProcessStyleChoices.length > 0 ? (
-              <View className="onboarding-guided__choices">
-                {visibleGuidedProcessStyleChoices.map((choice) => (
-                  <View
-                    key={choice.id}
-                    className="onboarding-guided__choice"
-                    hoverClass="onboarding-guided__choice--active"
-                    hoverStartTime={20}
-                    hoverStayTime={70}
-                    onClick={() => handleGuidedProcessStyleAnswer(choice.id)}
-                  >
-                    <Text className="onboarding-guided__choice-title">{choice.title}</Text>
-                    <Text className="onboarding-guided__choice-description">{choice.description}</Text>
-                  </View>
-                ))}
-              </View>
-            ) : (
-              <Text className="onboarding-guided__hint">正在准备处理风格选项...</Text>
-            )
-          ) : null}
+    const canFinish = guidedDiscoverStep.step === 'done' || guidedDiscoverStep.step === 'variety';
 
-          {guidedDiscoverStep.step === 'continent' ? (
-            discoverPayload && discoverPayload.continentOptions.length > 0 ? (
-              <View className="onboarding-guided__choices">
-                {GUIDED_CONTINENT_CHOICES.map((choice) => (
-                  <View
-                    key={choice.id}
-                    className="onboarding-guided__choice"
-                    hoverClass="onboarding-guided__choice--active"
-                    hoverStartTime={20}
-                    hoverStayTime={70}
-                    onClick={() => handleGuidedContinentAnswer(choice.id)}
-                  >
-                    <Text className="onboarding-guided__choice-title">{choice.title}</Text>
-                    <Text className="onboarding-guided__choice-description">{choice.description}</Text>
-                  </View>
-                ))}
-              </View>
-            ) : (
-              <Text className="onboarding-guided__hint">正在准备大洲选项...</Text>
-            )
-          ) : null}
+    return (
+      <View className="onboarding-guided">
+        <View className="onboarding-guided__frame">
+          <View className="onboarding-guided__header">
+            <Text className="onboarding-guided__title">{guidedDiscoverStep.title}</Text>
+            <Text className="onboarding-guided__description">{guidedDiscoverStep.description}</Text>
+          </View>
 
-          {guidedDiscoverStep.step === 'country' ? (
-            discoverPayload ? (
-              discoverPayload.countryOptions.length > 0 ? (
+          <View className="onboarding-guided__body">
+            {discoverError ? <Text className="onboarding-guided__hint">{discoverError}</Text> : null}
+
+            {guidedDiscoverStep.step === 'process_base' ? (
+              discoverPayload && discoverPayload.processBaseOptions.length > 0 ? (
                 <View className="onboarding-guided__choices">
-                  {discoverPayload.countryOptions.map((option) => (
+                  {GUIDED_PROCESS_CHOICES.map((choice) => (
                     <View
-                      key={option.id}
+                      key={choice.id}
                       className="onboarding-guided__choice"
                       hoverClass="onboarding-guided__choice--active"
                       hoverStartTime={20}
                       hoverStayTime={70}
-                      onClick={() => handleCountrySelect(option.label)}
+                      onClick={() => this.handleGuidedProcessAnswer(choice.id)}
                     >
-                      <Text className="onboarding-guided__choice-title">{option.label}</Text>
-                      <Text className="onboarding-guided__choice-description">{`${option.count} 款可选豆子`}</Text>
+                      <Text className="onboarding-guided__choice-title">{choice.title}</Text>
+                      <Text className="onboarding-guided__choice-description">{choice.description}</Text>
                     </View>
                   ))}
                 </View>
               ) : (
-                <Text className="onboarding-guided__hint">这个大洲下暂时没有可继续缩小的国家结果，可以直接往下浏览当前结果。</Text>
+                <Text className="onboarding-guided__hint">正在准备基础处理法选项...</Text>
               )
-            ) : (
-              <Text className="onboarding-guided__hint">正在准备国家选项...</Text>
-            )
-          ) : null}
+            ) : null}
 
-          {guidedDiscoverStep.step === 'variety' ? (
-            discoverPayload ? (
-              discoverPayload.varietyOptions.length > 0 ? (
-                <>
+            {guidedDiscoverStep.step === 'process_style' ? (
+              discoverPayload && visibleGuidedProcessStyleChoices.length > 0 ? (
+                <View className="onboarding-guided__choices">
+                  {visibleGuidedProcessStyleChoices.map((choice) => (
+                    <View
+                      key={choice.id}
+                      className="onboarding-guided__choice"
+                      hoverClass="onboarding-guided__choice--active"
+                      hoverStartTime={20}
+                      hoverStayTime={70}
+                      onClick={() => this.handleGuidedProcessStyleAnswer(choice.id)}
+                    >
+                      <Text className="onboarding-guided__choice-title">{choice.title}</Text>
+                      <Text className="onboarding-guided__choice-description">{choice.description}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <Text className="onboarding-guided__hint">正在准备处理风格选项...</Text>
+              )
+            ) : null}
+
+            {guidedDiscoverStep.step === 'continent' ? (
+              discoverPayload && discoverPayload.continentOptions.length > 0 ? (
+                <View className="onboarding-guided__choices">
+                  {GUIDED_CONTINENT_CHOICES.map((choice) => (
+                    <View
+                      key={choice.id}
+                      className="onboarding-guided__choice"
+                      hoverClass="onboarding-guided__choice--active"
+                      hoverStartTime={20}
+                      hoverStayTime={70}
+                      onClick={() => this.handleGuidedContinentAnswer(choice.id)}
+                    >
+                      <Text className="onboarding-guided__choice-title">{choice.title}</Text>
+                      <Text className="onboarding-guided__choice-description">{choice.description}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <Text className="onboarding-guided__hint">正在准备大洲选项...</Text>
+              )
+            ) : null}
+
+            {guidedDiscoverStep.step === 'country' ? (
+              discoverPayload ? (
+                discoverPayload.countryOptions.length > 0 ? (
                   <View className="onboarding-guided__choices">
-                    {discoverPayload.varietyOptions.slice(0, 6).map((option) => (
+                    {discoverPayload.countryOptions.map((option) => (
                       <View
                         key={option.id}
                         className="onboarding-guided__choice"
                         hoverClass="onboarding-guided__choice--active"
                         hoverStartTime={20}
                         hoverStayTime={70}
-                        onClick={() => handleVarietySelect(option.label)}
+                        onClick={() => this.handleCountrySelect(option.label)}
                       >
                         <Text className="onboarding-guided__choice-title">{option.label}</Text>
                         <Text className="onboarding-guided__choice-description">{`${option.count} 款可选豆子`}</Text>
                       </View>
                     ))}
                   </View>
-                  <Text className="onboarding-guided__secondary" onClick={handleConfirm}>
-                    跳过
-                  </Text>
-                </>
+                ) : (
+                  <Text className="onboarding-guided__hint">这个大洲下暂时没有可继续缩小的国家结果，可以直接往下浏览当前结果。</Text>
+                )
               ) : (
-                <Text className="onboarding-guided__hint">当前路径下暂时没有可继续细分的豆种，可以直接查看结果。</Text>
+                <Text className="onboarding-guided__hint">正在准备国家选项...</Text>
               )
-            ) : (
-              <Text className="onboarding-guided__hint">正在准备豆种选项...</Text>
-            )
-          ) : null}
+            ) : null}
 
-          {guidedDiscoverStep.step === 'done' ? (
-            <Text className="onboarding-guided__secondary" onClick={handleRestart}>
-              重新回答
-            </Text>
-          ) : null}
-        </View>
+            {guidedDiscoverStep.step === 'variety' ? (
+              discoverPayload ? (
+                discoverPayload.varietyOptions.length > 0 ? (
+                  <>
+                    <View className="onboarding-guided__choices">
+                      {discoverPayload.varietyOptions.slice(0, 6).map((option) => (
+                        <View
+                          key={option.id}
+                          className="onboarding-guided__choice"
+                          hoverClass="onboarding-guided__choice--active"
+                          hoverStartTime={20}
+                          hoverStayTime={70}
+                          onClick={() => this.handleVarietySelect(option.label)}
+                        >
+                          <Text className="onboarding-guided__choice-title">{option.label}</Text>
+                          <Text className="onboarding-guided__choice-description">{`${option.count} 款可选豆子`}</Text>
+                        </View>
+                      ))}
+                    </View>
+                    <Text className="onboarding-guided__secondary" onClick={this.handleConfirm}>
+                      跳过
+                    </Text>
+                  </>
+                ) : (
+                  <Text className="onboarding-guided__hint">当前路径下暂时没有可继续细分的豆种，可以直接查看结果。</Text>
+                )
+              ) : (
+                <Text className="onboarding-guided__hint">正在准备豆种选项...</Text>
+              )
+            ) : null}
 
-        <View
-          className={`onboarding-guided__confirm ${
-            canFinish ? 'onboarding-guided__confirm--enabled' : 'onboarding-guided__confirm--disabled'
-          }`}
-          hoverClass={canFinish ? 'onboarding-guided__confirm--enabled-active' : ''}
-          hoverStartTime={20}
-          hoverStayTime={70}
-          onClick={handleConfirm}
-        >
-          <Text className="onboarding-guided__confirm-text">开始进入</Text>
+            {guidedDiscoverStep.step === 'done' ? (
+              <Text className="onboarding-guided__secondary" onClick={this.handleRestart}>
+                重新回答
+              </Text>
+            ) : null}
+          </View>
+
+          <View
+            className={`onboarding-guided__confirm ${
+              canFinish ? 'onboarding-guided__confirm--enabled' : 'onboarding-guided__confirm--disabled'
+            }`}
+            hoverClass={canFinish ? 'onboarding-guided__confirm--enabled-active' : ''}
+            hoverStartTime={20}
+            hoverStayTime={70}
+            onClick={this.handleConfirm}
+          >
+            <Text className="onboarding-guided__confirm-text">开始进入</Text>
+          </View>
         </View>
       </View>
-    </View>
-  );
+    );
+  }
 }

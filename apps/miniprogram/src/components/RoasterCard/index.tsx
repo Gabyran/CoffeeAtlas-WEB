@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react';
 import { Image, Text, View } from '@tarojs/components';
-import Taro from '@tarojs/taro';
 
 import type { RoasterSummary } from '../../types';
 import { openExternalLink } from '../../utils/external-links';
+import { navigateTo } from '../../utils/miniprogram-api';
 import './index.scss';
 
 interface RoasterCardProps {
@@ -24,7 +24,7 @@ export default function RoasterCard({
   showQuickActions,
 }: RoasterCardProps) {
   const handleTap = () => {
-    Taro.navigateTo({ url: `/pages/roaster-detail/index?id=${roaster.id}` });
+    navigateTo({ url: `/pages/roaster-detail/index?id=${roaster.id}` });
   };
 
   const heroImageUrl = roaster.coverImageUrl ?? roaster.logoUrl ?? null;

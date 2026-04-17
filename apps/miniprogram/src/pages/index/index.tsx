@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Text, View } from '@tarojs/components';
-import Taro, { useDidShow, useReachBottom } from '@tarojs/taro';
+import { useDidShow, useReachBottom } from '@tarojs/taro';
 
 import AtlasPageHero from '../../components/AtlasPageHero';
 import BeanCard from '../../components/BeanCard';
@@ -24,6 +24,7 @@ import {
   HOME_NEW_ARRIVAL_PAGE_SIZE,
   HOME_NEW_ARRIVAL_SEARCH_DEBOUNCE_MS,
 } from './new-arrivals-page.ts';
+import { showToast } from '../../utils/miniprogram-api.ts';
 import './index.scss';
 
 function getErrorMessage(error: unknown): string {
@@ -124,7 +125,7 @@ export default function Index() {
     } catch (error) {
       if (requestVersion !== listRequestVersionRef.current) return;
       setErrorMessage(getErrorMessage(error));
-      Taro.showToast({ title: '加载失败', icon: 'none' });
+      showToast({ title: '加载失败', icon: 'none' });
     } finally {
       if (requestVersion === listRequestVersionRef.current) {
         setLoadingState(false);

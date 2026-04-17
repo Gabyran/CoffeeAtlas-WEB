@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Button, Image, Text, View } from '@tarojs/components';
-import Taro, { useRouter, useShareAppMessage, useShareTimeline } from '@tarojs/taro';
+import { useShareAppMessage, useShareTimeline } from '@tarojs/taro';
 import { toBeanFavoriteSnapshot } from '@coffee-atlas/domain';
 
 import Icon from '../../components/Icon';
@@ -9,6 +9,7 @@ import type { BeanDetail, RoasterDetail } from '../../types';
 import { isLoggedIn } from '../../utils/auth';
 import { formatSalesCount } from '../../utils/formatters';
 import { openExternalLink } from '../../utils/external-links';
+import { getCurrentPageParams, navigateTo, setNavigationBarTitle, showToast } from '../../utils/miniprogram-api.ts';
 import {
   addToHistory,
   isBeanFavorite,
@@ -51,8 +52,7 @@ export function buildBeanSharePayload(bean: BeanShareSource | null) {
 }
 
 export default function BeanDetailPage() {
-  const router = useRouter();
-  const id = router.params.id ?? '';
+  const id = getCurrentPageParams().id ?? '';
   const [bean, setBean] = useState<BeanDetail | null>(null);
   const [roaster, setRoaster] = useState<RoasterDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -107,7 +107,7 @@ export default function BeanDetailPage() {
         if (!active) return;
 
         setBean(data);
-        Taro.setNavigationBarTitle({ title: data.name });
+        setNavigationBarTitle({ title: data.name });
 
         if (isLoggedIn()) {
           const favorites = await getFavorites().catch(() => []);
@@ -133,7 +133,7 @@ export default function BeanDetailPage() {
             });
         }
       })
-      .catch(() => Taro.showToast({ title: '加载失败', icon: 'none' }))
+      .catch(() => showToast({ title: '加载失败', icon: 'none' }))
       .finally(() => {
         if (active) {
           setLoading(false);
@@ -162,28 +162,28 @@ export default function BeanDetailPage() {
         if (favorited) {
           await removeFavorite('bean', bean.id);
           setFavorited(false);
-          Taro.showToast({ title: '已取消收藏', icon: 'none', duration: 1500 });
+          showToast({ title: '已取消收藏', icon: 'none', duration: 1500 });
         } else {
           await addFavorite('bean', bean.id);
           setFavorited(true);
-          Taro.showToast({ title: '已收藏', icon: 'none', duration: 1500 });
+          showToast({ title: '已收藏', icon: 'none', duration: 1500 });
         }
       } catch {
-        Taro.showToast({ title: '操作失败', icon: 'none' });
+        showToast({ title: '操作失败', icon: 'none' });
       }
       return;
     }
 
     const added = toggleBeanFavorite(toBeanFavoriteSnapshot(bean));
     setFavorited(added);
-    Taro.showToast({ title: added ? '已收藏' : '已取消收藏', icon: 'none', duration: 1500 });
+    showToast({ title: added ? '已收藏' : '已取消收藏', icon: 'none', duration: 1500 });
   };
 
   const handlePurchase = () => {
     if (!bean) return;
 
     if (!purchaseUrl) {
-      Taro.showToast({ title: '暂无购买链接', icon: 'none' });
+      showToast({ title: '暂无购买链接', icon: 'none' });
       return;
     }
 
@@ -196,11 +196,11 @@ export default function BeanDetailPage() {
 
   const handleRoasterTap = () => {
     if (!bean?.roasterId) {
-      Taro.showToast({ title: '暂无烘焙师信息', icon: 'none' });
+      showToast({ title: '暂无烘焙师信息', icon: 'none' });
       return;
     }
 
-    Taro.navigateTo({ url: `/pages/roaster-detail/index?id=${bean.roasterId}` });
+    navigateTo({ url: `/pages/roaster-detail/index?id=${bean.roasterId}` });
   };
 
   if (loading) {

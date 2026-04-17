@@ -1,15 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createRequire } from 'node:module';
 
 let storageState: Record<string, unknown>;
 let importId = 0;
 
 async function loadStorageModule() {
   storageState = {};
-  const require = createRequire(import.meta.url);
-  const taroPath = require.resolve('@tarojs/taro');
-  const taroMock = {
+  (globalThis as { wx?: Record<string, unknown> }).wx = {
     getStorageSync: (key: string) => storageState[key],
     setStorageSync: (key: string, value: unknown) => {
       storageState[key] = value;
@@ -17,16 +14,6 @@ async function loadStorageModule() {
     removeStorageSync: (key: string) => {
       delete storageState[key];
     },
-  };
-
-  require.cache[taroPath] = {
-    id: taroPath,
-    filename: taroPath,
-    loaded: true,
-    exports: taroMock,
-    children: [],
-    path: taroPath,
-    paths: [],
   };
 
   importId += 1;

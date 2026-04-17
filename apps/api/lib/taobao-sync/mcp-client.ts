@@ -1,82 +1,231 @@
+import { execFile as execFileCallback } from 'node:child_process';
+import { existsSync } from 'node:fs';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { homedir, tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { promisify } from 'node:util';
+
 import type {
   TaobaoBrowseHistoryResult,
   TaobaoInspectPageResult,
   TaobaoMcpCurrentTabResult,
   TaobaoMcpReadPageResult,
-  TaobaoMcpSseEnvelope,
   TaobaoSearchProductsResult,
 } from './types.ts';
-import { createConnection } from 'node:net';
-import { homedir } from 'node:os';
-import { join } from 'node:path';
-import { existsSync } from 'node:fs';
+
+const execFile = promisify(execFileCallback);
 
 const TAOBAO_SOURCE_APP = 'coffeeatlas-taobao-sync';
-const DEFAULT_TAOBAO_CLI_RPC_SOCKET = join(homedir(), 'Library', 'Application Support', 'taobao', 'cli-rpc.sock');
+const DEFAULT_TAOBAO_NATIVE_BIN = 'taobao-native';
+const DEFAULT_TAOBAO_MAC_RUNNER = join(homedir(), 'Library', 'Application Support', 'taobao', 'cli', 'taobao-runner');
+const DEFAULT_TOOL_RUNNER_TIMEOUT_MS = 90_000;
+const TOOL_RUNNER_MAX_BUFFER = 16 * 1024 * 1024;
+const TOOL_RUNNER_TIMEOUT_MS = parsePositiveInt(process.env.TAOBAO_NATIVE_TIMEOUT_MS, DEFAULT_TOOL_RUNNER_TIMEOUT_MS);
 
-type TaobaoCliRpcEnvelope<T> = {
-  result?: T;
-  error?: string | { message?: string };
+type TaobaoToolRequest = {
+  tool: string;
+  arguments: Record<string, unknown>;
 };
 
 type TaobaoMcpClientOptions = {
-  cliRpcSocketPath?: string;
-  cliRpcRequest?: <T>(
-    request: { tool: string; arguments: Record<string, unknown> },
-    socketPath: string
-  ) => Promise<TaobaoCliRpcEnvelope<T>>;
+  nativeBin?: string;
+  toolRunner?: <T>(request: TaobaoToolRequest, context: { nativeBin: string }) => Promise<T>;
 };
 
-function extractPayload(body: string) {
-  const trimmed = body.trim();
+type ExecFileError = Error & {
+  stdout?: string;
+  stderr?: string;
+  killed?: boolean;
+  signal?: NodeJS.Signals | string | null;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function parsePositiveInt(value: string | undefined, fallback: number) {
+  if (!value) return fallback;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function extractErrorMessage(error: unknown): string | null {
+  if (!error) return null;
+  if (typeof error === 'string') {
+    const trimmed = error.trim();
+    return trimmed || null;
+  }
+
+  if (isRecord(error) && typeof error.message === 'string') {
+    const trimmed = error.message.trim();
+    return trimmed || null;
+  }
+
+  return null;
+}
+
+function parseJsonFromText(text: string) {
+  const trimmed = text.trim();
   if (!trimmed) return null;
 
-  if (trimmed.startsWith('{')) {
-    return JSON.parse(trimmed) as TaobaoMcpSseEnvelope;
+  try {
+    return JSON.parse(trimmed) as unknown;
+  } catch {
+    // Ignore and try the last JSON-looking line.
   }
 
-  const dataLines = trimmed
+  const lines = trimmed
     .split(/\r?\n/)
-    .filter((line) => line.startsWith('data:'))
-    .map((line) => line.slice(5).trim())
+    .map((line) => line.trim())
     .filter(Boolean);
 
-  if (dataLines.length === 0) {
-    throw new Error(`Unexpected MCP response: ${trimmed.slice(0, 200)}`);
+  for (let index = lines.length - 1; index >= 0; index -= 1) {
+    const line = lines[index];
+    if (!line || (!line.startsWith('{') && !line.startsWith('[') && !line.startsWith('"'))) {
+      continue;
+    }
+
+    try {
+      return JSON.parse(line) as unknown;
+    } catch {
+      // Keep looking.
+    }
   }
 
-  return JSON.parse(dataLines[dataLines.length - 1]) as TaobaoMcpSseEnvelope;
+  return null;
 }
 
-function parseTextResult<T>(payload: TaobaoMcpSseEnvelope): T {
-  if (payload.error) {
-    throw new Error(`Taobao MCP error ${payload.error.code}: ${payload.error.message}`);
+function extractReadableProcessMessage(text?: string | null) {
+  if (!text) return null;
+  const lines = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  for (let index = lines.length - 1; index >= 0; index -= 1) {
+    const line = lines[index];
+    if (!line.startsWith('[')) {
+      return line;
+    }
   }
 
-  const text = payload.result?.content?.find((item) => item.type === 'text')?.text;
-  if (!text) {
-    throw new Error('Taobao MCP response did not include text content');
-  }
-
-  let parsed: unknown = JSON.parse(text);
-
-  while (parsed && typeof parsed === 'object' && 'content' in parsed) {
-    const content = (parsed as { content?: unknown }).content;
-    if (!Array.isArray(content)) break;
-
-    const nestedText = content.find((item) => item && typeof item === 'object' && item.type === 'text')?.text?.trim();
-
-    if (!nestedText) break;
-    parsed = JSON.parse(nestedText);
-  }
-
-  return parsed as T;
+  return lines[lines.length - 1] ?? null;
 }
 
-function extractCliRpcErrorMessage(error: TaobaoCliRpcEnvelope<unknown>['error']) {
-  if (!error) return null;
-  if (typeof error === 'string') return error;
-  return error.message ?? 'Unknown Taobao CLI RPC error';
+function unwrapToolPayload<T>(payload: unknown): T {
+  let current = payload;
+
+  for (let depth = 0; depth < 8; depth += 1) {
+    if (typeof current === 'string') {
+      const parsed = parseJsonFromText(current);
+      if (parsed === null) break;
+      current = parsed;
+      continue;
+    }
+
+    if (!isRecord(current)) {
+      break;
+    }
+
+    const message = extractErrorMessage(current.error);
+    if (message) {
+      throw new Error(message);
+    }
+
+    if (Array.isArray(current.content)) {
+      const nestedText = current.content.find(
+        (item) => isRecord(item) && item.type === 'text' && typeof item.text === 'string'
+      );
+      if (nestedText && typeof nestedText.text === 'string') {
+        current = nestedText.text;
+        continue;
+      }
+    }
+
+    if ('result' in current) {
+      current = current.result;
+      continue;
+    }
+
+    break;
+  }
+
+  return current as T;
+}
+
+async function loadCliPayload(stdout: string, outputFile: string) {
+  if (existsSync(outputFile)) {
+    return JSON.parse(await readFile(outputFile, 'utf8')) as unknown;
+  }
+
+  const summary = parseJsonFromText(stdout);
+  if (isRecord(summary) && typeof summary.resultFile === 'string' && existsSync(summary.resultFile)) {
+    return JSON.parse(await readFile(summary.resultFile, 'utf8')) as unknown;
+  }
+
+  if (summary !== null) {
+    return summary;
+  }
+
+  throw new Error('Taobao native CLI returned no JSON payload');
+}
+
+function formatToolFailure(toolName: string, error: unknown): Error {
+  if (error instanceof Error && !('stdout' in error) && !('stderr' in error)) {
+    return error;
+  }
+
+  const execError = error as ExecFileError;
+  const stderrPayload = parseJsonFromText(execError.stderr ?? '');
+  const stdoutPayload = parseJsonFromText(execError.stdout ?? '');
+  const timeoutMessage = execError.killed && /timed out/i.test(execError.message) ? `timed out after ${TOOL_RUNNER_TIMEOUT_MS}ms` : null;
+  const message =
+    timeoutMessage ||
+    (stderrPayload && extractErrorMessage(isRecord(stderrPayload) ? stderrPayload.error : null)) ||
+    (stdoutPayload && extractErrorMessage(isRecord(stdoutPayload) ? stdoutPayload.error : null)) ||
+    extractReadableProcessMessage(execError.stderr) ||
+    extractReadableProcessMessage(execError.stdout) ||
+    execError.message ||
+    'Unknown taobao-native error';
+
+  return new Error(`Taobao native tool ${toolName} failed: ${message}`);
+}
+
+function resolveNativeBin(preferred?: string | null) {
+  const envBin = process.env.TAOBAO_NATIVE_BIN?.trim();
+  if (envBin) return envBin;
+
+  const normalizedPreferred = preferred?.trim();
+  if (normalizedPreferred && !/^https?:\/\//i.test(normalizedPreferred)) {
+    return normalizedPreferred;
+  }
+
+  if (existsSync(DEFAULT_TAOBAO_MAC_RUNNER)) {
+    return DEFAULT_TAOBAO_MAC_RUNNER;
+  }
+
+  return DEFAULT_TAOBAO_NATIVE_BIN;
+}
+
+async function defaultToolRunner<T>(request: TaobaoToolRequest, context: { nativeBin: string }) {
+  const tempDir = await mkdtemp(join(tmpdir(), 'coffeeatlas-taobao-native-'));
+  const requestFile = join(tempDir, `${request.tool}.request.json`);
+  const outputFile = join(tempDir, `${request.tool}.result.json`);
+
+  try {
+    await writeFile(requestFile, JSON.stringify(request), 'utf8');
+    const { stdout } = await execFile(context.nativeBin, ['--request', requestFile, '-o', outputFile], {
+      encoding: 'utf8',
+      maxBuffer: TOOL_RUNNER_MAX_BUFFER,
+      timeout: TOOL_RUNNER_TIMEOUT_MS,
+    });
+    const payload = await loadCliPayload(stdout, outputFile);
+    return unwrapToolPayload<T>(payload);
+  } catch (error) {
+    throw formatToolFailure(request.tool, error);
+  } finally {
+    await rm(tempDir, { recursive: true, force: true }).catch(() => undefined);
+  }
 }
 
 function normalizeReadPageResult(result: Partial<TaobaoMcpReadPageResult> | null | undefined): TaobaoMcpReadPageResult {
@@ -112,209 +261,21 @@ function normalizeSearchProductsResult(result: Partial<TaobaoSearchProductsResul
   };
 }
 
-async function defaultCliRpcRequest<T>(
-  request: { tool: string; arguments: Record<string, unknown> },
-  socketPath: string
-) {
-  return new Promise<TaobaoCliRpcEnvelope<T>>((resolve, reject) => {
-    const socket = createConnection(socketPath);
-    let buffer = '';
-    let settled = false;
-
-    const finish = (fn: () => void) => {
-      if (settled) return;
-      settled = true;
-      fn();
-    };
-
-    const consumeBuffer = () => {
-      const newlineIndex = buffer.indexOf('\n');
-      if (newlineIndex === -1) return false;
-
-      const line = buffer.slice(0, newlineIndex).trim();
-      buffer = buffer.slice(newlineIndex + 1);
-
-      if (!line) return consumeBuffer();
-
-      try {
-        finish(() => resolve(JSON.parse(line) as TaobaoCliRpcEnvelope<T>));
-      } catch (error) {
-        finish(() => reject(error));
-      }
-
-      return true;
-    };
-
-    socket.setEncoding('utf8');
-    socket.on('connect', () => {
-      socket.write(`${JSON.stringify(request)}\n`);
-    });
-    socket.on('data', (chunk) => {
-      buffer += chunk;
-      if (consumeBuffer()) {
-        socket.end();
-      }
-    });
-    socket.on('end', () => {
-      if (settled) return;
-      const remaining = buffer.trim();
-      if (!remaining) {
-        finish(() => reject(new Error('Taobao CLI RPC returned an empty response')));
-        return;
-      }
-
-      try {
-        finish(() => resolve(JSON.parse(remaining) as TaobaoCliRpcEnvelope<T>));
-      } catch (error) {
-        finish(() => reject(error));
-      }
-    });
-    socket.on('error', (error) => {
-      finish(() => reject(error));
-    });
-  });
-}
-
 export class TaobaoMcpClient {
-  private readonly baseUrl: string;
-  private readonly cliRpcSocketPath: string;
-  private readonly cliRpcRequest: TaobaoMcpClientOptions['cliRpcRequest'];
-  private sessionId: string | null;
-  private requestId: number;
-  private transport: 'http' | 'cli-rpc' | null;
+  private readonly nativeBin: string;
+  private readonly toolRunner: NonNullable<TaobaoMcpClientOptions['toolRunner']>;
 
   constructor(baseUrl: string, options: TaobaoMcpClientOptions = {}) {
-    this.baseUrl = baseUrl;
-    this.cliRpcSocketPath = options.cliRpcSocketPath ?? process.env.TAOBAO_CLI_RPC_SOCKET?.trim() ?? DEFAULT_TAOBAO_CLI_RPC_SOCKET;
-    this.cliRpcRequest = options.cliRpcRequest ?? defaultCliRpcRequest;
-    this.sessionId = null;
-    this.requestId = 1;
-    this.transport = null;
-  }
-
-  private nextId() {
-    this.requestId += 1;
-    return this.requestId;
+    this.nativeBin = resolveNativeBin(options.nativeBin ?? baseUrl);
+    this.toolRunner = options.toolRunner ?? defaultToolRunner;
   }
 
   async initialize() {
-    if (this.transport === 'cli-rpc') return;
-
-    try {
-      await this.initializeHttp();
-      this.transport = 'http';
-    } catch (error) {
-      if (!this.canUseCliRpcFallback()) {
-        throw error;
-      }
-
-      await this.enableCliRpcFallback(error);
-    }
+    // Kept for backward compatibility with older call sites.
   }
 
-  private async initializeHttp() {
-    const response = await fetch(this.baseUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        jsonrpc: '2.0',
-        id: this.requestId,
-        method: 'initialize',
-        params: {
-          protocolVersion: '2025-03-26',
-          capabilities: {},
-          clientInfo: {
-            name: TAOBAO_SOURCE_APP,
-            version: '0.1.0',
-          },
-        },
-      }),
-    });
-
-    const body = await response.text();
-    if (!response.ok) {
-      throw new Error(`Failed to initialize Taobao MCP: ${response.status} ${body}`);
-    }
-
-    const sessionId = response.headers.get('mcp-session-id');
-    if (!sessionId) {
-      throw new Error('Taobao MCP did not return a session id');
-    }
-
-    this.sessionId = sessionId;
-    const payload = extractPayload(body);
-    if (payload?.error) {
-      throw new Error(`Taobao MCP initialize error: ${payload.error.message}`);
-    }
-  }
-
-  private canUseCliRpcFallback() {
-    return this.cliRpcSocketPath !== DEFAULT_TAOBAO_CLI_RPC_SOCKET || existsSync(this.cliRpcSocketPath);
-  }
-
-  private async enableCliRpcFallback(previousError?: unknown) {
-    if (!this.canUseCliRpcFallback()) {
-      if (previousError instanceof Error) throw previousError;
-      throw new Error(`Taobao CLI RPC socket is unavailable at ${this.cliRpcSocketPath}`);
-    }
-
-    try {
-      const probe = await this.cliRpcRequest?.<{ tools?: Array<{ name: string }> }>(
-        { tool: '_help', arguments: {} },
-        this.cliRpcSocketPath
-      );
-      const message = extractCliRpcErrorMessage(probe?.error);
-      if (message) {
-        throw new Error(message);
-      }
-    } catch (error) {
-      const previousMessage = previousError instanceof Error ? previousError.message : String(previousError ?? 'unknown error');
-      const fallbackMessage = error instanceof Error ? error.message : String(error ?? 'unknown error');
-      throw new Error(`Taobao MCP HTTP transport failed (${previousMessage}) and CLI RPC fallback failed (${fallbackMessage})`);
-    }
-
-    this.transport = 'cli-rpc';
-    this.sessionId = null;
-  }
-
-  private async callHttpTool<T>(name: string, args: Record<string, unknown>) {
-    const response = await fetch(this.baseUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'mcp-session-id': this.sessionId!,
-      },
-      body: JSON.stringify({
-        jsonrpc: '2.0',
-        id: this.nextId(),
-        method: 'tools/call',
-        params: {
-          name,
-          arguments: {
-            sourceApp: TAOBAO_SOURCE_APP,
-            ...args,
-          },
-        },
-      }),
-    });
-
-    const body = await response.text();
-    if (!response.ok) {
-      throw new Error(`Taobao MCP tool ${name} failed: ${response.status} ${body}`);
-    }
-
-    const payload = extractPayload(body);
-    if (!payload) {
-      throw new Error(`Taobao MCP tool ${name} returned an empty response`);
-    }
-
-    return parseTextResult<T>(payload);
-  }
-
-  private async callCliRpcTool<T>(name: string, args: Record<string, unknown>) {
-    const payload = await this.cliRpcRequest?.<T>(
+  private async callTool<T>(name: string, args: Record<string, unknown>) {
+    const result = await this.toolRunner<unknown>(
       {
         tool: name,
         arguments: {
@@ -322,47 +283,16 @@ export class TaobaoMcpClient {
           ...args,
         },
       },
-      this.cliRpcSocketPath
+      { nativeBin: this.nativeBin }
     );
-
-    const message = extractCliRpcErrorMessage(payload?.error);
-    if (message) {
-      throw new Error(`Taobao CLI RPC tool ${name} failed: ${message}`);
-    }
-
-    if (!payload || !('result' in payload)) {
-      throw new Error(`Taobao CLI RPC tool ${name} returned an empty response`);
-    }
-
-    return payload.result as T;
-  }
-
-  private async callTool<T>(name: string, args: Record<string, unknown>) {
-    if (this.transport !== 'cli-rpc' && !this.sessionId) {
-      await this.initialize();
-    }
-
-    if (this.transport === 'cli-rpc') {
-      return this.callCliRpcTool<T>(name, args);
-    }
-
-    try {
-      return await this.callHttpTool<T>(name, args);
-    } catch (error) {
-      if (!this.canUseCliRpcFallback()) {
-        throw error;
-      }
-
-      await this.enableCliRpcFallback(error);
-      return this.callCliRpcTool<T>(name, args);
-    }
+    return unwrapToolPayload<T>(result);
   }
 
   async navigateToUrl(url: string) {
     await this.callTool<{ success: boolean; url: string }>('navigate_to_url', { url });
   }
 
-  async readPageContent(args: { scope?: string; maxLength?: number } = {}) {
+  async readPageContent(args: { scope?: string; maxLength?: number; offset?: number } = {}) {
     const result = await this.callTool<Partial<TaobaoMcpReadPageResult>>('read_page_content', args);
     return normalizeReadPageResult(result);
   }

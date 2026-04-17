@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Image, Text, View } from '@tarojs/components';
-import Taro, { useRouter } from '@tarojs/taro';
 import { toRoasterFavoriteSnapshot } from '@coffee-atlas/domain';
 
 import BeanCard from '../../components/BeanCard';
@@ -15,6 +14,7 @@ import {
 import type { RoasterDetail } from '../../types';
 import { isLoggedIn } from '../../utils/auth';
 import { openExternalLink } from '../../utils/external-links';
+import { getCurrentPageParams, setClipboardData, setNavigationBarTitle, showToast } from '../../utils/miniprogram-api.ts';
 import { isRoasterFavorite, toggleRoasterFavorite } from '../../utils/storage';
 import './index.scss';
 
@@ -23,8 +23,7 @@ function formatLinkLabel(url: string): string {
 }
 
 export default function RoasterDetailPage() {
-  const router = useRouter();
-  const id = router.params.id ?? '';
+  const id = getCurrentPageParams().id ?? '';
   const [roaster, setRoaster] = useState<RoasterDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -36,7 +35,7 @@ export default function RoasterDetailPage() {
     getRoasterById(id)
       .then(async (data) => {
         setRoaster(data);
-        Taro.setNavigationBarTitle({ title: data.name });
+        setNavigationBarTitle({ title: data.name });
 
         if (isLoggedIn()) {
           const favorites = await getCloudFavorites().catch(() => []);
@@ -61,28 +60,28 @@ export default function RoasterDetailPage() {
         if (favorited) {
           await removeFavorite('roaster', roaster.id);
           setFavorited(false);
-          Taro.showToast({ title: '已取消收藏', icon: 'none', duration: 1500 });
+          showToast({ title: '已取消收藏', icon: 'none', duration: 1500 });
         } else {
           await addFavorite('roaster', roaster.id);
           setFavorited(true);
-          Taro.showToast({ title: '已收藏烘焙商', icon: 'none', duration: 1500 });
+          showToast({ title: '已收藏烘焙商', icon: 'none', duration: 1500 });
         }
       } catch {
-        Taro.showToast({ title: '操作失败', icon: 'none' });
+        showToast({ title: '操作失败', icon: 'none' });
       }
       return;
     }
 
     const added = toggleRoasterFavorite(toRoasterFavoriteSnapshot(roaster));
     setFavorited(added);
-    Taro.showToast({ title: added ? '已收藏烘焙商' : '已取消收藏', icon: 'none', duration: 1500 });
+    showToast({ title: added ? '已收藏烘焙商' : '已取消收藏', icon: 'none', duration: 1500 });
   };
 
   const handleCopy = (label: string, value: string) => {
-    Taro.setClipboardData({
+    setClipboardData({
       data: value,
       success: () => {
-        Taro.showToast({ title: `${label}已复制`, icon: 'none' });
+        showToast({ title: `${label}已复制`, icon: 'none' });
       },
     });
   };

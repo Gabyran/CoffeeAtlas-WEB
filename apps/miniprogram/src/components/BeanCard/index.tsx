@@ -1,7 +1,7 @@
 import { View, Image, Text } from '@tarojs/components';
-import Taro from '@tarojs/taro';
 import type { CoffeeBean } from '../../types';
 import { formatSalesCount } from '../../utils/formatters';
+import { navigateTo } from '../../utils/miniprogram-api';
 import Icon from '../Icon';
 import './index.scss';
 
@@ -17,7 +17,7 @@ export default function BeanCard({ bean, index = 0 }: BeanCardProps) {
   const displayPrice = bean.discountedPrice ?? bean.price;
 
   const handleTap = () => {
-    Taro.navigateTo({ url: `/pages/bean-detail/index?id=${bean.id}` });
+    navigateTo({ url: `/pages/bean-detail/index?id=${bean.id}` });
   };
 
   const delayStyle = index < 5 ? { animationDelay: `${index * 0.05}s` } : {};

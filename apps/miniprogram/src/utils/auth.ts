@@ -1,5 +1,5 @@
-import Taro from '@tarojs/taro';
 import { wechatLogin, syncFavorites } from '../services/api.ts';
+import { login as miniProgramLogin } from './miniprogram-api.ts';
 import {
   setToken,
   clearToken,
@@ -16,7 +16,7 @@ export function isLoggedIn(): boolean {
 }
 
 export async function login(userInfo?: { nickname?: string; avatarUrl?: string }): Promise<AuthUser> {
-  const { code } = await Taro.login();
+  const { code } = await miniProgramLogin();
   const { token, user } = await wechatLogin(code, userInfo);
   setToken(token);
   setStoredUser(user);

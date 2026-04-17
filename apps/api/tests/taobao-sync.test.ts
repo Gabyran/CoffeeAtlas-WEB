@@ -3,7 +3,11 @@ import test from 'node:test';
 
 import { getTaobaoSyncConfig, randomDelayMs } from '../lib/taobao-sync/config.ts';
 import { TaobaoMcpClient } from '../lib/taobao-sync/mcp-client.ts';
-import { mergeVisibleProductsWithSearchProducts, toPublishStatus } from '../lib/taobao-sync/sync.ts';
+import {
+  mergeVisibleProductsWithSearchProducts,
+  shouldSkipTrackedProductBeforeDetail,
+  toPublishStatus,
+} from '../lib/taobao-sync/sync.ts';
 import {
   applyOcrProcessFallback,
   buildShopListingIdentity,
@@ -72,222 +76,126 @@ test('normalizeTaobaoShopIdentity keeps canonical appUid shop url', () => {
 });
 
 test('TaobaoMcpClient sends sourceApp when calling tools', async () => {
-  const originalFetch = globalThis.fetch;
-  const requestBodies: Record<string, unknown>[] = [];
+  let capturedRequest: { tool: string; arguments: Record<string, unknown> } | null = null;
 
-  globalThis.fetch = (async (_input, init) => {
-    const body = JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>;
-    requestBodies.push(body);
-
-    if (body.method === 'initialize') {
-      return new Response(
-        JSON.stringify({
-          jsonrpc: '2.0',
-          id: 1,
-          result: { content: [{ type: 'text', text: '{}' }] },
-        }),
-        {
-          status: 200,
-          headers: { 'mcp-session-id': 'session-1' },
-        }
-      );
-    }
-
-    return new Response(
-      JSON.stringify({
-        jsonrpc: '2.0',
-        id: 2,
-        result: {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify({ success: true, url: 'https://store.taobao.com/shop/view_shop.htm?appUid=abc123' }),
-            },
-          ],
-        },
-      }),
-      { status: 200 }
-    );
-  }) as typeof fetch;
-
-  try {
-    const client = new TaobaoMcpClient('http://localhost:3655/mcp');
-    await client.navigateToUrl('https://store.taobao.com/shop/view_shop.htm?appUid=abc123');
-
-    const toolCall = requestBodies[1] as {
-      params?: {
-        arguments?: Record<string, unknown>;
+  const client = new TaobaoMcpClient('http://localhost:3655/mcp', {
+    toolRunner: async (request) => {
+      capturedRequest = request;
+      return {
+        success: true,
+        url: String(request.arguments.url ?? ''),
       };
-    };
+    },
+  });
 
-    assert.equal(toolCall.params?.arguments?.sourceApp, 'coffeeatlas-taobao-sync');
-    assert.equal(toolCall.params?.arguments?.url, 'https://store.taobao.com/shop/view_shop.htm?appUid=abc123');
-  } finally {
-    globalThis.fetch = originalFetch;
-  }
+  await client.navigateToUrl('https://store.taobao.com/shop/view_shop.htm?appUid=abc123');
+
+  assert.equal(capturedRequest?.tool, 'navigate_to_url');
+  assert.equal(capturedRequest?.arguments.sourceApp, 'coffeeatlas-taobao-sync');
+  assert.equal(capturedRequest?.arguments.url, 'https://store.taobao.com/shop/view_shop.htm?appUid=abc123');
 });
 
-test('TaobaoMcpClient unwraps nested text payload from Taobao MCP server', async () => {
-  const originalFetch = globalThis.fetch;
-  let callCount = 0;
-
-  globalThis.fetch = (async (_input, init) => {
-    const body = JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>;
-    callCount += 1;
-
-    if (body.method === 'initialize') {
-      return new Response(
-        JSON.stringify({
-          jsonrpc: '2.0',
-          id: 1,
-          result: { content: [{ type: 'text', text: '{}' }] },
-        }),
-        {
-          status: 200,
-          headers: { 'mcp-session-id': 'session-1' },
-        }
-      );
-    }
-
-    return new Response(
-      JSON.stringify({
-        jsonrpc: '2.0',
-        id: 2,
-        result: {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify({
-                content: [
-                  {
-                    type: 'text',
-                    text: JSON.stringify({
-                      url: 'https://shop.example.com',
-                      title: '店铺首页',
-                      content: '商品内容',
-                      totalLength: 4,
-                      truncated: false,
-                    }),
-                  },
-                ],
-              }),
-            },
-          ],
-        },
-      }),
-      { status: 200 }
-    );
-  }) as typeof fetch;
-
-  try {
-    const client = new TaobaoMcpClient('http://localhost:3655/mcp');
-    const result = await client.readPageContent({ maxLength: 1000 });
-
-    assert.equal(callCount, 2);
-    assert.equal(result.title, '店铺首页');
-    assert.equal(result.content, '商品内容');
-    assert.equal(result.totalLength, 4);
-  } finally {
-    globalThis.fetch = originalFetch;
-  }
-});
-
-test('TaobaoMcpClient falls back to Taobao CLI RPC when HTTP MCP initialize fails', async () => {
-  const originalFetch = globalThis.fetch;
-  const cliRequests: Array<{ tool: string; arguments: Record<string, unknown>; socketPath: string }> = [];
-
-  globalThis.fetch = (async () => {
-    return new Response('proxy upstream error: ', {
-      status: 502,
-      statusText: 'Bad Gateway',
-    });
-  }) as typeof fetch;
-
-  try {
-    const client = new TaobaoMcpClient('http://localhost:3655/mcp', {
-      cliRpcSocketPath: '/tmp/mock-taobao-cli-rpc.sock',
-      cliRpcRequest: async (request, socketPath) => {
-        cliRequests.push({ ...request, socketPath });
-
-        if (request.tool === '_help') {
-          return {
-            result: {
-              tools: [{ name: 'navigate_to_url' }],
-            },
-          };
-        }
-
-        return {
-          result: {
-            success: true,
-            url: String(request.arguments.url ?? ''),
+test('TaobaoMcpClient unwraps nested taobao-native payloads', async () => {
+  const client = new TaobaoMcpClient('http://localhost:3655/mcp', {
+    toolRunner: async () => ({
+      result: {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              url: 'https://shop.example.com',
+              title: '店铺首页',
+              content: '商品内容',
+              totalLength: 4,
+              truncated: false,
+            }),
           },
-        };
+        ],
       },
-    });
+    }),
+  });
 
-    await client.navigateToUrl('https://store.taobao.com/shop/view_shop.htm?appUid=abc123');
+  const result = await client.readPageContent({ maxLength: 1000 });
 
-    assert.equal(cliRequests.length, 2);
-    assert.equal(cliRequests[0]?.tool, '_help');
-    assert.equal(cliRequests[1]?.tool, 'navigate_to_url');
-    assert.equal(cliRequests[1]?.socketPath, '/tmp/mock-taobao-cli-rpc.sock');
-    assert.equal(cliRequests[1]?.arguments.sourceApp, 'coffeeatlas-taobao-sync');
-    assert.equal(cliRequests[1]?.arguments.url, 'https://store.taobao.com/shop/view_shop.htm?appUid=abc123');
-  } finally {
-    globalThis.fetch = originalFetch;
-  }
+  assert.equal(result.title, '店铺首页');
+  assert.equal(result.content, '商品内容');
+  assert.equal(result.totalLength, 4);
 });
 
-test('TaobaoMcpClient normalizes partial CLI RPC payloads for page, history, and search helpers', async () => {
-  const originalFetch = globalThis.fetch;
+test('TaobaoMcpClient propagates taobao-native tool errors', async () => {
+  const client = new TaobaoMcpClient('http://localhost:3655/mcp', {
+    toolRunner: async () => ({ error: '连接失败' }),
+  });
 
-  globalThis.fetch = (async () => {
-    return new Response('proxy upstream error: ', {
-      status: 502,
-      statusText: 'Bad Gateway',
-    });
-  }) as typeof fetch;
+  await assert.rejects(
+    () => client.navigateToUrl('https://store.taobao.com/shop/view_shop.htm?appUid=abc123'),
+    /连接失败/
+  );
+});
 
-  try {
-    const client = new TaobaoMcpClient('http://localhost:3655/mcp', {
-      cliRpcSocketPath: '/tmp/mock-taobao-cli-rpc.sock',
-      cliRpcRequest: async (request) => {
-        if (request.tool === '_help') {
-          return { result: { tools: [{ name: 'read_page_content' }] } };
-        }
-        if (request.tool === 'read_page_content') {
-          return { result: { title: '店铺首页' } };
-        }
-        if (request.tool === 'scan_page_elements') {
-          return { result: {} };
-        }
-        if (request.tool === 'get_browse_history') {
-          return { result: { type: 'product', count: 1 } };
-        }
-        if (request.tool === 'search_products') {
-          return { result: { keyword: 'CoffeeBuff旗舰店 咖啡豆' } };
-        }
-        return { result: {} };
-      },
-    });
+test('TaobaoMcpClient normalizes partial taobao-native payloads for page, history, and search helpers', async () => {
+  const client = new TaobaoMcpClient('http://localhost:3655/mcp', {
+    toolRunner: async (request) => {
+      if (request.tool === 'read_page_content') {
+        return { title: '店铺首页' };
+      }
+      if (request.tool === 'scan_page_elements') {
+        return {};
+      }
+      if (request.tool === 'get_browse_history') {
+        return { type: 'product', count: 1 };
+      }
+      if (request.tool === 'search_products') {
+        return { keyword: 'CoffeeBuff旗舰店 咖啡豆' };
+      }
+      return {};
+    },
+  });
 
-    const page = await client.readPageContent({ maxLength: 1000 });
-    const scan = await client.scanPageElements();
-    const history = await client.getBrowseHistory('product');
-    const search = await client.searchProducts('CoffeeBuff旗舰店 咖啡豆');
+  const page = await client.readPageContent({ maxLength: 1000 });
+  const scan = await client.scanPageElements();
+  const history = await client.getBrowseHistory('product');
+  const search = await client.searchProducts('CoffeeBuff旗舰店 咖啡豆');
 
-    assert.equal(page.title, '店铺首页');
-    assert.equal(page.content, '');
-    assert.equal(page.totalLength, 0);
-    assert.equal(scan.dom, '');
-    assert.equal(scan.totalElements, 0);
-    assert.deepEqual(history.items, []);
-    assert.equal(search.keyword, 'CoffeeBuff旗舰店 咖啡豆');
-    assert.deepEqual(search.products, []);
-  } finally {
-    globalThis.fetch = originalFetch;
-  }
+  assert.equal(page.title, '店铺首页');
+  assert.equal(page.content, '');
+  assert.equal(page.totalLength, 0);
+  assert.equal(scan.dom, '');
+  assert.equal(scan.totalElements, 0);
+  assert.deepEqual(history.items, []);
+  assert.equal(search.keyword, 'CoffeeBuff旗舰店 咖啡豆');
+  assert.deepEqual(search.products, []);
+});
+
+test('shouldSkipTrackedProductBeforeDetail only pre-skips tracked items in listing fallback mode', () => {
+  const existing: ExistingRoasterBeanRecord[] = [
+    {
+      id: 'tracked-1',
+      beanId: 'bean-1',
+      displayName: '有容乃大哥伦比亚慧兰进取庄园黄帕卡玛拉厌氧蜜处理单品咖啡豆',
+      priceAmount: 53.6,
+      productUrl: 'https://item.taobao.com/item.htm?id=926870566313&skuId=6114749131744',
+      imageUrl: 'https://example.com/bean.jpg',
+      sourceItemId: '926870566313',
+      sourceSkuId: '6114749131744',
+      status: 'ACTIVE',
+    },
+  ];
+
+  const product: TaobaoStructuredProduct = {
+    title: '有容乃大哥伦比亚慧兰进取庄园黄帕卡玛拉厌氧蜜处理单品咖啡豆',
+    shopName: '有容乃大咖啡补给站',
+    shopUrl: 'https://store.taobao.com/shop/view_shop.htm?appUid=abc123',
+    productUrl: null,
+    imageUrl: null,
+    priceAmount: 53.6,
+    sourceItemId: null,
+    sourceSkuId: null,
+    listingText: null,
+  };
+
+  assert.equal(shouldSkipTrackedProductBeforeDetail('listing', existing, product), true);
+  assert.equal(shouldSkipTrackedProductBeforeDetail('new_arrivals', existing, product), false);
 });
 
 test('isExactShopMatch filters by exact shop identity or normalized shop name', () => {

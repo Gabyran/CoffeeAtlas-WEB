@@ -1,4 +1,3 @@
-import Taro from '@tarojs/taro';
 import {
   extractApiErrorMessage,
   unwrapApiResponse,
@@ -26,6 +25,7 @@ import { getApiBaseUrlState } from '../utils/api-config.ts';
 import { getApiBaseUrlValidationError } from '../utils/api-base-url.ts';
 import { buildApiRequestOptions } from '../utils/api-request.ts';
 import { formatApiRequestErrorMessage } from '../utils/api-error.ts';
+import { request as miniProgramRequest } from '../utils/miniprogram-api.ts';
 import { hasSupabaseEnv, requireSupabaseClient } from '../utils/supabase.ts';
 import { requireSupabaseCatalogRead } from './catalog-read-mode.ts';
 import {
@@ -47,7 +47,7 @@ export { getApiBaseUrlState } from '../utils/api-config.ts';
 
 async function request<T>(
   endpoint: string,
-  options?: Partial<Taro.request.Option>
+  options?: Record<string, unknown>
 ): Promise<T> {
   const apiState = getApiBaseUrlState();
   const baseUrl = apiState.baseUrl;
@@ -72,7 +72,7 @@ async function request<T>(
       options,
     });
 
-    const res = await Taro.request<V1Response<T> | { error?: string | { message?: string } }>({
+    const res = await miniProgramRequest<V1Response<T> | { error?: string | { message?: string } }>({
       ...requestOptions,
     });
 

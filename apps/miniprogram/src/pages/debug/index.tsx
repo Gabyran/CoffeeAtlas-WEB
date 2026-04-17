@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button, Input, Text, View } from '@tarojs/components';
-import Taro, { useDidShow } from '@tarojs/taro';
+import { useDidShow } from '@tarojs/taro';
 
 import {
   getApiBaseUrlState,
@@ -16,6 +16,7 @@ import {
   clearApiBaseUrlOverride,
   setApiBaseUrlOverride,
 } from '../../utils/api-config';
+import { setNavigationBarTitle, showToast } from '../../utils/miniprogram-api.ts';
 import './index.scss';
 
 interface ProbeResult {
@@ -50,7 +51,7 @@ export default function DebugPage() {
   const [storedUser, setStoredUser] = useState(getStoredUser());
 
   useDidShow(() => {
-    Taro.setNavigationBarTitle({ title: '连接诊断' });
+    setNavigationBarTitle({ title: '连接诊断' });
 
     const nextState = getApiBaseUrlState();
     setApiState(nextState);
@@ -87,12 +88,12 @@ export default function DebugPage() {
       const nextState = setApiBaseUrlOverride(draftUrl);
       setApiState(nextState);
       setDraftUrl(nextState.baseUrl);
-      Taro.showToast({
+      showToast({
         title: nextState.baseUrl ? '已保存联调地址' : '已清空联调地址',
         icon: 'none',
       });
     } catch (error) {
-      Taro.showToast({
+      showToast({
         title: error instanceof Error ? error.message : '地址格式不正确',
         icon: 'none',
       });
@@ -103,7 +104,7 @@ export default function DebugPage() {
     const nextState = clearApiBaseUrlOverride();
     setApiState(nextState);
     setDraftUrl(nextState.baseUrl);
-    Taro.showToast({
+    showToast({
       title: '已恢复编译配置',
       icon: 'none',
     });

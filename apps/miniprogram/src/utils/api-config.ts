@@ -1,4 +1,3 @@
-import Taro from '@tarojs/taro';
 import {
   getApiBaseUrlHostname,
   getApiBaseUrlValidationError,
@@ -6,6 +5,7 @@ import {
   normalizeApiBaseUrl,
 } from './api-base-url.ts';
 import { getCompiledEnv } from './compiled-env.ts';
+import { getStorageSync, removeStorageSync, setStorageSync } from './miniprogram-api.ts';
 
 const API_BASE_URL_OVERRIDE_KEY = 'api_base_url_override';
 
@@ -55,7 +55,7 @@ function getWarning(baseUrl: string): string | null {
 }
 
 export function getApiBaseUrlState(): ApiBaseUrlState {
-  const runtimeBaseUrl = normalizeApiBaseUrl(Taro.getStorageSync(API_BASE_URL_OVERRIDE_KEY));
+  const runtimeBaseUrl = normalizeApiBaseUrl(getStorageSync<string>(API_BASE_URL_OVERRIDE_KEY));
   const buildBaseUrl = normalizeApiBaseUrl(getCompiledEnv('TARO_APP_API_URL'));
   const baseUrl = runtimeBaseUrl || buildBaseUrl;
 
@@ -76,15 +76,15 @@ export function setApiBaseUrlOverride(url: string): ApiBaseUrlState {
   }
 
   if (!normalized) {
-    Taro.removeStorageSync(API_BASE_URL_OVERRIDE_KEY);
+    removeStorageSync(API_BASE_URL_OVERRIDE_KEY);
   } else {
-    Taro.setStorageSync(API_BASE_URL_OVERRIDE_KEY, normalized);
+    setStorageSync(API_BASE_URL_OVERRIDE_KEY, normalized);
   }
 
   return getApiBaseUrlState();
 }
 
 export function clearApiBaseUrlOverride(): ApiBaseUrlState {
-  Taro.removeStorageSync(API_BASE_URL_OVERRIDE_KEY);
+  removeStorageSync(API_BASE_URL_OVERRIDE_KEY);
   return getApiBaseUrlState();
 }

@@ -1,8 +1,8 @@
 import { PropsWithChildren } from 'react'
 import { Text, View } from '@tarojs/components'
-import { getSystemInfoSync, reLaunch } from '@tarojs/taro'
 
 import { restartOnboarding } from './utils/restart-onboarding'
+import { getWindowInfo, reLaunch } from './utils/miniprogram-api'
 import { clearOnboardingProfile } from './utils/storage'
 import './app.scss'
 
@@ -16,7 +16,7 @@ function App({ children }: PropsWithChildren) {
     })
   }
 
-  const statusBarHeight = getSystemInfoSync().statusBarHeight ?? 0
+  const statusBarHeight = getWindowInfo().statusBarHeight ?? 0
 
   return (
     <View className="app-shell">

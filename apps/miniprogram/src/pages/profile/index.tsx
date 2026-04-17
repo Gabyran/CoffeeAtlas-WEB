@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { View, Text, Image, Button } from '@tarojs/components';
-import Taro, { useDidShow } from '@tarojs/taro';
+import { useDidShow } from '@tarojs/taro';
 import { toBeanFavoriteSnapshot, toRoasterFavoriteSnapshot } from '@coffee-atlas/domain';
 
 import Icon from '../../components/Icon';
@@ -36,6 +36,7 @@ import type {
   RoasterSnapshot,
   ShareEventLogEntry,
 } from '../../utils/storage';
+import { getStorageSync, navigateTo, setStorageSync, showToast } from '../../utils/miniprogram-api.ts';
 import { getBadgeRecordCopy } from './badge-record';
 import { getProfileBadges, type ProfileBadgeProgress } from './profile-badges';
 import './index.scss';
@@ -111,11 +112,11 @@ function normalizeBadgeIdList(value: unknown): string[] {
 }
 
 function getSeenBadgeIds(): string[] {
-  return normalizeBadgeIdList(Taro.getStorageSync(BADGE_UNLOCK_SEEN_KEY));
+  return normalizeBadgeIdList(getStorageSync(BADGE_UNLOCK_SEEN_KEY));
 }
 
 function setSeenBadgeIds(badgeIds: string[]): void {
-  Taro.setStorageSync(BADGE_UNLOCK_SEEN_KEY, normalizeBadgeIdList(badgeIds));
+  setStorageSync(BADGE_UNLOCK_SEEN_KEY, normalizeBadgeIdList(badgeIds));
 }
 
 function formatHistoryTime(viewedAt: number): string {
@@ -137,7 +138,7 @@ function formatHistoryTime(viewedAt: number): string {
 
 function BeanRow({ bean, note, onFavoriteToggle }: BeanRowProps) {
   const handleTap = () => {
-    Taro.navigateTo({ url: `/pages/bean-detail/index?id=${bean.id}` });
+    navigateTo({ url: `/pages/bean-detail/index?id=${bean.id}` });
   };
 
   return (
@@ -284,9 +285,9 @@ export default function Profile() {
       setUser(authUser);
       setLoggedIn(true);
       await Promise.all([loadCloudFavorites(), loadServerBadges()]);
-      Taro.showToast({ title: '登录成功', icon: 'success' });
+      showToast({ title: '登录成功', icon: 'success' });
     } catch (error) {
-      Taro.showToast({ title: error instanceof Error ? error.message : '登录失败', icon: 'none' });
+      showToast({ title: error instanceof Error ? error.message : '登录失败', icon: 'none' });
     } finally {
       setLoginLoading(false);
     }
@@ -313,7 +314,7 @@ export default function Profile() {
       await removeCloudFavorite(favorite.target_type, favorite.target_id);
       setCloudFavorites((prev) => prev.filter((item) => item.id !== favorite.id));
     } catch {
-      Taro.showToast({ title: '操作失败', icon: 'none' });
+      showToast({ title: '操作失败', icon: 'none' });
     }
   };
 
