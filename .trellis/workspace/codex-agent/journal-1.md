@@ -20,7 +20,11 @@
 
 ### Main Changes
 
-(Add details)
+- Swapped the Taobao sync transport in `apps/api/lib/taobao-sync/mcp-client.ts` from the earlier MCP-style wrapper to direct `taobao-native` CLI execution, with request serialization, output parsing, timeout handling, and clearer error reporting.
+- Updated `apps/api/lib/taobao-sync/sync.ts` so arrival collection first opens the shop `上新` / `新品` tab and reads products there. Only when that tab is unavailable or empty does it fall back to the full listing flow.
+- Limited pre-detail duplicate skipping to the listing fallback path. Items discovered from the `上新` tab now still enter detail parsing, which avoids dropping genuinely new products just because a normalized title already exists in the shop listing table.
+- Added a regression test in `apps/api/tests/taobao-sync.test.ts` to lock the new behavior: listing mode may skip tracked items before detail, new-arrivals mode must not.
+- Verified with live runs and database inspection that the updated flow was actively processing products from the `上新` tab instead of stalling in the old comparison logic.
 
 ### Git Commits
 
@@ -30,7 +34,11 @@
 
 ### Testing
 
-- [OK] (Add test results)
+- [OK] `pnpm --filter @coffeeatlas/api test`
+- [OK] `pnpm --filter @coffeeatlas/api typecheck`
+- [OK] `pnpm --filter @coffeeatlas/api lint`
+- [OK] Live single-shop run: `pnpm --filter @coffeeatlas/api sync:taobao:shop -- --roaster-name 有容乃大`
+- [OK] Verified job `6e9c5717-407a-455f-a99e-a43b2e5faf67` completed with `processedRows=30`, `insertedRoasterBeans=3`, `updatedRoasterBeans=13`, `failedShops=0`
 
 ### Status
 
