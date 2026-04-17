@@ -176,3 +176,37 @@ Added recent session memory to Trellis start context, documented copy-change and
 ### Next Steps
 
 - None - task complete
+
+
+## Session 6: API Taobao new-arrivals sync verification
+
+**Date**: 2026-04-17
+**Task**: API Taobao new-arrivals sync verification
+**Package**: api
+**Branch**: `main`
+
+### Summary
+
+Replaced Taobao sync MCP transport with taobao-native, changed arrival collection to prefer the shop new-arrivals tab before listing fallback, and verified a live single-shop run that produced 3 inserts and 13 updates.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `fcf1e95` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
