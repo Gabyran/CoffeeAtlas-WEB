@@ -62,7 +62,11 @@
 
 ### Main Changes
 
-(Add details)
+| Area | Description |
+|------|-------------|
+| Taobao Preflight | Added a preflight step that probes Taobao desktop availability, launches the app when it is not running, and fails early on login or captcha risk signals. |
+| Daily Sync | Moved daily Taobao sync orchestration into reusable code and made the daily script print `preflight` status together with sync summary output. |
+| Verification | Added automated tests for daily sync orchestration and desktop preflight, then ran `pnpm --filter @coffeeatlas/api test`, `typecheck`, and `lint`. |
 
 ### Git Commits
 
@@ -72,7 +76,9 @@
 
 ### Testing
 
-- [OK] (Add test results)
+- [OK] `pnpm --filter @coffeeatlas/api test`
+- [OK] `pnpm --filter @coffeeatlas/api typecheck`
+- [OK] `pnpm --filter @coffeeatlas/api lint`
 
 ### Status
 
@@ -206,6 +212,40 @@ Replaced Taobao sync MCP transport with taobao-native, changed arrival collectio
 | Hash | Message |
 |------|---------|
 | `fcf1e95` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
+
+
+## Session 7: API Taobao daily sync preflight
+
+**Date**: 2026-04-17
+**Task**: API Taobao daily sync preflight
+**Package**: api
+**Branch**: `main`
+
+### Summary
+
+Added Taobao desktop preflight for daily sync, covered preflight and daily orchestration with tests, and verified api test/typecheck/lint.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `fa06815` | (see git log) |
 
 ### Testing
 
