@@ -1,345 +1,393 @@
 # Development Workflow
 
-> Based on [Effective Harnesses for Long-Running Agents](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents)
+---
+
+## Core Principles
+
+1. **Plan before code** — figure out what to do before you start
+2. **Specs injected, not remembered** — guidelines are injected via hook/skill, not recalled from memory
+3. **Persist everything** — research, decisions, and lessons all go to files; conversations get compacted, files don't
+4. **Incremental development** — one task at a time
+5. **Capture learnings** — after each task, review and write new knowledge back to spec
 
 ---
 
-## Table of Contents
+## Trellis System
 
-1. [Quick Start (Do This First)](#quick-start-do-this-first)
-2. [Workflow Overview](#workflow-overview)
-3. [Session Start Process](#session-start-process)
-4. [Development Process](#development-process)
-5. [Session End](#session-end)
-6. [File Descriptions](#file-descriptions)
-7. [Best Practices](#best-practices)
+### Developer Identity
 
----
-
-## Quick Start (Do This First)
-
-### Step 0: Initialize Developer Identity (First Time Only)
+On first use, initialize your identity:
 
 ```bash
-python3 ./.trellis/scripts/get_developer.py
 python3 ./.trellis/scripts/init_developer.py <your-name>
 ```
 
-This creates:
-- `.trellis/.developer`
-- `.trellis/workspace/<your-name>/`
+Creates `.trellis/.developer` (gitignored) + `.trellis/workspace/<your-name>/`.
 
-### Step 1: Understand Current Context
+### Spec System
+
+`.trellis/spec/` holds coding guidelines organized by package and layer.
+
+- `.trellis/spec/<package>/<layer>/index.md` — entry point with **Pre-Development Checklist** + **Quality Check**. Actual guidelines live in the `.md` files it points to.
+- `.trellis/spec/guides/index.md` — cross-package thinking guides.
 
 ```bash
-python3 ./.trellis/scripts/get_context.py
-python3 ./.trellis/scripts/task.py list
-git status && git log --oneline -10
+python3 ./.trellis/scripts/get_context.py --mode packages   # list packages / layers
 ```
 
-### Step 2: Read Project Guidelines [MANDATORY]
+**When to update spec**: new pattern/convention found · bug-fix prevention to codify · new technical decision.
+
+### Task System
+
+Every task has its own directory under `.trellis/tasks/{MM-DD-name}/` holding `prd.md`, `implement.jsonl`, `check.jsonl`, `task.json`, optional `research/`, `info.md`.
 
 ```bash
-python3 ./.trellis/scripts/get_context.py --mode packages
-cat .trellis/spec/guides/index.md
-cat .trellis/spec/unit-test/index.md
+# Task lifecycle
+python3 ./.trellis/scripts/task.py create "<title>" [--slug <name>] [--parent <dir>]
+python3 ./.trellis/scripts/task.py start <name>          # set as current (writes .current-task, triggers after_start hooks)
+python3 ./.trellis/scripts/task.py finish                # clear current task (triggers after_finish hooks)
+python3 ./.trellis/scripts/task.py archive <name>        # move to archive/{year-month}/
+python3 ./.trellis/scripts/task.py list [--mine] [--status <s>]
+python3 ./.trellis/scripts/task.py list-archive
+
+# Code-spec context (injected into implement/check agents via JSONL)
+python3 ./.trellis/scripts/task.py init-context <name> <type>    # type: backend|frontend|fullstack|test|docs
+python3 ./.trellis/scripts/task.py add-context <name> <action> <file> <reason>
+python3 ./.trellis/scripts/task.py list-context <name> [action]
+python3 ./.trellis/scripts/task.py validate <name>
+
+# Task metadata
+python3 ./.trellis/scripts/task.py set-branch <name> <branch>
+python3 ./.trellis/scripts/task.py set-base-branch <name> <branch>    # PR target
+python3 ./.trellis/scripts/task.py set-scope <name> <scope>
+
+# Hierarchy (parent/child)
+python3 ./.trellis/scripts/task.py add-subtask <parent> <child>
+python3 ./.trellis/scripts/task.py remove-subtask <parent> <child>
+
+# PR creation
+python3 ./.trellis/scripts/task.py create-pr [name] [--dry-run]
 ```
 
-根据你要改的 package，继续读取对应 index，例如：
+> Run `python3 ./.trellis/scripts/task.py --help` to see the authoritative, up-to-date list.
+
+**Current-task mechanism**: `task.py start` writes the task path into `.trellis/.current-task`. Hook-capable platforms auto-inject this at session start, so the AI knows what you're working on without being told.
+
+### Workspace System
+
+Records every AI session for cross-session tracking under `.trellis/workspace/<developer>/`.
+
+- `journal-N.md` — session log. **Max 2000 lines per file**; a new `journal-(N+1).md` is auto-created when exceeded.
+- `index.md` — personal index (total sessions, last active).
 
 ```bash
-cat .trellis/spec/miniprogram/frontend/index.md
-cat .trellis/spec/api/backend/index.md
-cat .trellis/spec/shared-types/frontend/index.md
-cat .trellis/spec/shared-types/backend/index.md
+python3 ./.trellis/scripts/add_session.py --title "Title" --commit "hash" --summary "Summary"
 ```
 
-`get_context.py --mode packages` 会标出当前默认 package 和哪些 package 目前 `out of scope`。
-当前仓库默认 package 是 `miniprogram`，所以如果这轮只改小程序，先从 `miniprogram/frontend` 开始读。
+### Context Script
 
-原则：只读当前任务真正需要的 index 和规范文件，不做大范围预读。
-
-### Step 3: Read Task-Specific Specs
-
-**Miniprogram UI work**
 ```bash
-cat .trellis/spec/miniprogram/frontend/component-guidelines.md
-cat .trellis/spec/miniprogram/frontend/hook-guidelines.md
-cat .trellis/spec/miniprogram/frontend/state-management.md
-cat .trellis/spec/miniprogram/frontend/type-safety.md
-cat .trellis/spec/miniprogram/frontend/quality-guidelines.md
-```
-
-**Shared contract work**
-```bash
-cat .trellis/spec/shared-types/frontend/index.md
-cat .trellis/spec/shared-types/backend/index.md
-```
-
-**API backend work**
-```bash
-cat .trellis/spec/api/backend/index.md
-```
-
-**Test-sensitive work**
-```bash
-cat .trellis/spec/unit-test/conventions.md
+python3 ./.trellis/scripts/get_context.py                            # full session context
+python3 ./.trellis/scripts/get_context.py --mode packages            # available packages + spec layers
+python3 ./.trellis/scripts/get_context.py --mode phase --step <X.Y>  # detailed guide for a workflow step
 ```
 
 ---
 
-## Workflow Overview
-
-### Core Principles
-
-1. **Read Before Write** - 先读 spec，再动代码
-2. **Document Reality** - spec 写当前仓库真实状态，不写理想状态
-3. **One Task At A Time** - 每次聚焦单一任务目录
-4. **Code-Spec Sync** - 学到新规则时及时更新 `.trellis/spec/`
-5. **Keep Work Traceable** - 任务、PRD、journal 尽量可追踪
-6. **Prefer Final Skills** - 默认用轻量 `think`、直接实现、`check` 收尾；不要默认进入大而复杂的前置流程
-7. **Separate Flow From Capability** - Trellis 管任务流程与项目上下文；通用能力型 skill 默认复用你当前 Codex 全局技能（本仓库按 `Waza` 风格使用）
-
-### File System
+## Phase Index
 
 ```
-.trellis/
-|-- .developer
-|-- scripts/
-|-- workspace/
-|   |-- index.md
-|   +-- {developer}/
-|       |-- index.md
-|       +-- journal-N.md
-|-- tasks/
-|   +-- {MM}-{DD}-{slug}/
-|       |-- task.json
-|       |-- prd.md
-|       |-- implement.jsonl
-|       |-- check.jsonl
-|       +-- debug.jsonl
-|-- spec/
-|   |-- miniprogram/
-|   |   +-- frontend/
-|   |-- shared-types/
-|   |   |-- frontend/
-|   |   +-- backend/
-|   |-- unit-test/
-|   +-- guides/
-+-- workflow.md
+Phase 1: Plan    → figure out what to do (brainstorm + research → prd.md)
+Phase 2: Execute → write code and pass quality checks
+Phase 3: Finish  → distill lessons + wrap-up
+```
+
+### Phase 1: Plan
+- 1.0 Create task `[required · once]`
+- 1.1 Requirement exploration `[required · repeatable]`
+- 1.2 Research `[optional · repeatable]`
+- 1.3 Configure context `[required · once]` — Claude Code, Cursor, OpenCode, Codex, Kiro, Gemini, Qoder, CodeBuddy, Copilot, Droid
+- 1.4 Completion criteria
+
+### Phase 2: Execute
+- 2.1 Implement `[required · repeatable]`
+- 2.2 Quality check `[required · repeatable]`
+- 2.3 Rollback `[on demand]`
+
+### Phase 3: Finish
+- 3.1 Quality verification `[required · repeatable]`
+- 3.2 Debug retrospective `[on demand]`
+- 3.3 Spec update `[required · once]`
+- 3.4 Wrap-up reminder
+
+### Rules
+
+1. Identify which Phase you're in, then continue from the next step there
+2. Run steps in order inside each Phase; `[required]` steps can't be skipped
+3. Phases can roll back (e.g., Execute reveals a prd defect → return to Plan to fix, then re-enter Execute)
+4. Steps tagged `[once]` are skipped if already done; don't re-run
+
+### Skill Routing
+
+When a user request matches one of these intents, load the corresponding skill first — do not skip skills.
+
+| User intent | Skill |
+|---|---|
+| Wants a new feature / requirement unclear | trellis-brainstorm |
+| About to write code / start implementing | trellis-before-dev |
+| Finished writing / want to verify | trellis-check |
+| Stuck / fixed same bug several times | trellis-break-loop |
+| Spec needs update | trellis-update-spec |
+
+### DO NOT skip skills
+
+| What you're thinking | Why it's wrong |
+|---|---|
+| "This is simple, just code it" | Simple tasks often grow complex; before-dev takes under a minute |
+| "I already thought it through in plan mode" | Plan-mode output lives in memory — sub-agents can't see it; must be persisted to prd.md |
+| "I already know the spec" | The spec may have been updated since you last read it; read again |
+| "Code first, check later" | `check` surfaces issues you won't notice yourself; earlier is cheaper |
+
+### Loading Step Detail
+
+At each step, run this to fetch detailed guidance:
+
+```bash
+python3 ./.trellis/scripts/get_context.py --mode phase --step <step>
+# e.g. python3 ./.trellis/scripts/get_context.py --mode phase --step 1.1
 ```
 
 ---
 
-## Session Start Process
+## Phase 1: Plan
 
-### Step 1: Get Context
+Goal: figure out what to build, produce a clear requirements doc and the context needed to implement it.
 
-```bash
-python3 ./.trellis/scripts/get_context.py
-```
+#### 1.0 Create task `[required · once]`
 
-### Step 2: Read Relevant Specs
-
-- 先运行 `python3 ./.trellis/scripts/get_context.py --mode packages`
-- 先看当前 `default` package；本仓库默认通常先落到 `spec/miniprogram/frontend/`
-- Miniprogram UI -> `spec/miniprogram/frontend/`
-- API backend / route handlers -> `spec/api/backend/`
-- Shared contracts -> `spec/shared-types/backend/` 或 `spec/shared-types/frontend/`
-- Cross-layer change -> `spec/guides/cross-layer-thinking-guide.md`
-- 测试 / regression / helper change -> `spec/unit-test/conventions.md`
-
-### Step 3: Create Or Select A Task
+Create the task directory and set it as current:
 
 ```bash
-python3 ./.trellis/scripts/task.py list
-python3 ./.trellis/scripts/task.py create "<title>" --slug <task-name>
-python3 ./.trellis/scripts/task.py init-context .trellis/tasks/<dir> <frontend|backend|fullstack|test|docs> --package <api|miniprogram|shared-types|api-client|domain>
-python3 ./.trellis/scripts/task.py start .trellis/tasks/<dir>
+python3 ./.trellis/scripts/task.py create "<task title>" --slug <name>
+python3 ./.trellis/scripts/task.py start <task-dir>
 ```
 
-### Step 4: Write Or Update `prd.md`
+Skip when: `.trellis/.current-task` already points to a task.
 
-至少写清：
+#### 1.1 Requirement exploration `[required · repeatable]`
 
-- Goal
-- Requirements
-- Acceptance Criteria
-- Out of Scope
-- Technical Notes / risks
+Load the `trellis-brainstorm` skill and explore requirements interactively with the user per the skill's guidance.
+
+The brainstorm skill will guide you to:
+- Ask one question at a time
+- Prefer researching over asking the user
+- Prefer offering options over open-ended questions
+- Update `prd.md` immediately after each user answer
+
+Return to this step whenever requirements change and revise `prd.md`.
+
+#### 1.2 Research `[optional · repeatable]`
+
+Research can happen at any time during requirement exploration. It isn't limited to local code — you can use any available tool (MCP servers, skills, web search, etc.) to look up external information, including third-party library docs, industry practices, API references, etc.
+
+[Claude Code, Cursor, OpenCode, Codex, Kiro, Gemini, Qoder, CodeBuddy, Copilot, Droid]
+
+Spawn the research sub-agent:
+
+- **Agent type**: `trellis-research`
+- **Task description**: Research <specific question>
+- **Key requirement**: Research output MUST be persisted to `{TASK_DIR}/research/`
+
+[/Claude Code, Cursor, OpenCode, Codex, Kiro, Gemini, Qoder, CodeBuddy, Copilot, Droid]
+
+[Kilo, Antigravity, Windsurf]
+
+Do the research in the main session directly and write findings into `{TASK_DIR}/research/`.
+
+[/Kilo, Antigravity, Windsurf]
+
+**Research artifact conventions**:
+- One file per research topic (e.g. `research/auth-library-comparison.md`)
+- Record third-party library usage examples, API references, version constraints in files
+- Note relevant spec file paths you discovered for later reference
+
+Brainstorm and research can interleave freely — pause to research a technical question, then return to talk with the user.
+
+**Key principle**: Research output must be written to files, not left only in the chat. Conversations get compacted; files don't.
+
+#### 1.3 Configure context `[required · once]`
+
+[Claude Code, Cursor, OpenCode, Codex, Kiro, Gemini, Qoder, CodeBuddy, Copilot, Droid]
+
+Once research output is solid, initialize the agent context files:
+
+```bash
+python3 ./.trellis/scripts/task.py init-context "$TASK_DIR" <type>
+# type: backend | frontend | fullstack
+```
+
+Skip when: `implement.jsonl` already exists.
+
+Append any extra spec files or code patterns you find `[optional · repeatable]`:
+
+```bash
+python3 ./.trellis/scripts/task.py add-context "$TASK_DIR" implement "<path>" "<reason>"
+python3 ./.trellis/scripts/task.py add-context "$TASK_DIR" check "<path>" "<reason>"
+```
+
+These jsonl files are auto-injected into sub-agent prompts during Phase 2 via hook.
+
+[/Claude Code, Cursor, OpenCode, Codex, Kiro, Gemini, Qoder, CodeBuddy, Copilot, Droid]
+
+[Kilo, Antigravity, Windsurf]
+
+Skip this step. Context is loaded directly by the `trellis-before-dev` skill in Phase 2.
+
+[/Kilo, Antigravity, Windsurf]
+
+#### 1.4 Completion criteria
+
+| Condition | Required |
+|------|:---:|
+| `prd.md` exists | ✅ |
+| User confirms requirements | ✅ |
+| `research/` has artifacts (complex tasks) | recommended |
+| `info.md` technical design (complex tasks) | optional |
+
+[Claude Code, Cursor, OpenCode, Codex, Kiro, Gemini, Qoder, CodeBuddy, Copilot, Droid]
+
+| `implement.jsonl` exists | ✅ |
+
+[/Claude Code, Cursor, OpenCode, Codex, Kiro, Gemini, Qoder, CodeBuddy, Copilot, Droid]
 
 ---
 
-## Development Process
+## Phase 2: Execute
 
-### Task Development Flow
+Goal: turn the prd into code that passes quality checks.
 
-```
-1. Create/select task
-2. Read the minimum relevant specs
-3. Update PRD
-4. If unclear, do a short planning pass
-5. Implement
-6. Run checks
-7. Sync Trellis docs if new patterns were learned
-8. Hand off for human testing / commit
-```
+#### 2.1 Implement `[required · repeatable]`
 
-默认对应关系：
+[Claude Code, Cursor, OpenCode, Codex, Kiro, Gemini, Qoder, CodeBuddy, Copilot, Droid]
 
-- 不清楚怎么做：先短 `think`
-- 出现异常或失败：先定位原因，再修
-- 改完代码：跑 `check`
-- 准备交接或提交：跑 `finish-work`
+Spawn the implement sub-agent:
 
-只有在需求持续变化、确实需要多轮澄清时，才使用 `brainstorm`。
+- **Agent type**: `trellis-implement`
+- **Task description**: Implement the requirements per prd.md, consulting materials under `{TASK_DIR}/research/`; finish by running project lint and type-check
 
-### Global Skills vs Project Skills
+The platform hook auto-handles:
+- Reads `implement.jsonl` and injects the referenced spec files into the agent prompt
+- Injects prd.md content
 
-本仓库默认把 skill 分成两类：
+[/Claude Code, Cursor, OpenCode, Codex, Kiro, Gemini, Qoder, CodeBuddy, Copilot, Droid]
 
-- **Trellis 项目流程 skill**：`start`、`before-dev`、`check`、`check-cross-layer`、`finish-work`、`record-session`
-- **全局通用能力 skill**：`think`、`hunt`、`design`、`read`、`write`、`health`
+[Kilo, Antigravity, Windsurf]
 
-约定如下：
+1. Load the `trellis-before-dev` skill to read project guidelines
+2. Read `{TASK_DIR}/prd.md` for requirements
+3. Consult materials under `{TASK_DIR}/research/`
+4. Implement the code per requirements
+5. Run project lint and type-check
 
-- 通用能力优先复用你当前 Codex 全局 skill；本仓库不重复发明一套同名通用技能
-- Trellis 只负责项目特有流程、spec 读取、任务状态、交接与记录
-- 本仓库的 `check` 是**项目补充检查规则**，不是替代全局通用 `check`
-- 如果同时用到全局 `check` 和项目 `check`，顺序默认是：先按通用 `check` 做审查，再按项目 `check` 补跑本仓库验证命令
+[/Kilo, Antigravity, Windsurf]
 
-### Required Commands
+#### 2.2 Quality check `[required · repeatable]`
 
-按改动范围运行真实命令：
+[Claude Code, Cursor, OpenCode, Codex, Kiro, Gemini, Qoder, CodeBuddy, Copilot, Droid]
 
-```bash
-pnpm lint
-pnpm typecheck
-pnpm --filter @coffeeatlas/miniprogram typecheck
-```
+Spawn the check sub-agent:
 
-如果当前主要在做小程序联调，开发时优先开一个单独终端运行：
+- **Agent type**: `trellis-check`
+- **Task description**: Review all code changes against spec and prd; fix any findings directly; ensure lint and type-check pass
 
-```bash
-pnpm dev:miniprogram:auto
-```
+The check agent's job:
+- Review code changes against specs
+- Auto-fix issues it finds
+- Run lint and typecheck to verify
 
-它会监听小程序和共享包改动，并自动重启 `dev:weapp`。
+[/Claude Code, Cursor, OpenCode, Codex, Kiro, Gemini, Qoder, CodeBuddy, Copilot, Droid]
 
-### Commit Convention
+[Kilo, Antigravity, Windsurf]
 
-```bash
-git commit -m "type(scope): description"
-```
+Load the `trellis-check` skill and verify the code per its guidance:
+- Spec compliance
+- lint / type-check / tests
+- Cross-layer consistency (when changes span layers)
 
-Types used in this repo:
-- `feat`
-- `fix`
-- `docs`
-- `refactor`
-- `test`
-- `chore`
+If issues are found → fix → re-check, until green.
+
+[/Kilo, Antigravity, Windsurf]
+
+#### 2.3 Rollback `[on demand]`
+
+- `check` reveals a prd defect → return to Phase 1, fix `prd.md`, then redo 2.1
+- Implementation went wrong → revert code, redo 2.1
+- Need more research → research (same as Phase 1.2), write findings into `research/`
 
 ---
 
-## Session End
+## Phase 3: Finish
 
-### Pre-end Checklist
+Goal: ensure code quality, capture lessons, record the work.
 
-Use `/trellis:finish-work` before handoff.
+#### 3.1 Quality verification `[required · repeatable]`
 
-Minimum expectations:
-1. Relevant checks ran and results are known
-2. `.trellis/spec/` updated if the task changed conventions/contracts
-3. Working tree is understandable
-4. Human reviewer/tester has enough context to validate the change
-5. If the task was cross-layer, that fact is documented instead of implied
+Load the `trellis-check` skill and do a final verification:
+- Spec compliance
+- lint / type-check / tests
+- Cross-layer consistency (when changes span layers)
 
-### Post-Commit Recording
+If issues are found → fix → re-check, until green.
 
-After human testing and commit:
+#### 3.2 Debug retrospective `[on demand]`
 
-1. Archive completed task if it is actually done
-2. Record the session into Trellis workspace journals
+If this task involved repeated debugging (the same issue was fixed multiple times), load the `trellis-break-loop` skill to:
+- Classify the root cause
+- Explain why earlier fixes failed
+- Propose prevention
 
-```bash
-python3 ./.trellis/scripts/task.py archive <task-name>
-python3 ./.trellis/scripts/add_session.py \
-  --title "Session Title" \
-  --commit "abc1234" \
-  --summary "Brief summary"
-```
+The goal is to capture debugging lessons so the same class of issue doesn't recur.
 
-只有在代码已经由人类确认并提交后，才进入这一步。
+#### 3.3 Spec update `[required · once]`
 
-### Optional Session Recording
+Load the `trellis-update-spec` skill and review whether this task produced new knowledge worth recording:
+- Newly discovered patterns or conventions
+- Pitfalls you hit
+- New technical decisions
 
-After the work is committed, record it with:
+Update the docs under `.trellis/spec/` accordingly. Even if the conclusion is "nothing to update", walk through the judgment.
 
-```bash
-python3 ./.trellis/scripts/add_session.py \
-  --title "Session Title" \
-  --commit "abc1234" \
-  --summary "Brief summary"
-```
+#### 3.4 Wrap-up reminder
+
+After the above, remind the user they can run `/finish-work` to wrap up (archive the task, record the session).
 
 ---
 
-## File Descriptions
+## Workflow State Breadcrumbs
 
-### `spec/`
+<!-- Injected per-turn by UserPromptSubmit hook (inject-workflow-state.py).
+     Edit the text inside each [workflow-state:STATUS]...[/workflow-state:STATUS]
+     block to customize per-task-status flow reminders. Users who fork the
+     Trellis workflow only need to edit this file, not the hook script.
 
-Project-specific executable guidance.
+     Tag STATUS matches task.json.status. Default statuses: planning /
+     in_progress / completed. Add custom status blocks as needed (hyphens
+     and underscores allowed). Hook falls back to built-in defaults when
+     a status has no tag block. -->
 
-- `miniprogram/frontend/` - 小程序前端规范，也是当前默认入口
-- `api/backend/` - API 路由、服务端逻辑、SQL、脚本
-- `shared-types/*` - 跨端契约层规范
-- `unit-test/` - Current test setup and expectations
-- `guides/` - Thinking checklists for cross-layer / reuse problems
+[workflow-state:no_task]
+No active task. If the user describes multi-step work, load trellis-brainstorm skill to clarify requirements and create a task via `python3 ./.trellis/scripts/task.py create`. Simple one-off questions or trivial edits don't need a task — just answer directly.
+[/workflow-state:no_task]
 
-### `tasks/`
+[workflow-state:planning]
+Complete prd.md via trellis-brainstorm skill; then run task.py start.
+[/workflow-state:planning]
 
-Each task directory stores:
-- `task.json` - lifecycle metadata
-- `prd.md` - agreed scope
-- `*.jsonl` - context injection lists for implement/check/debug agents
+[workflow-state:in_progress]
+Flow: implement → check → update-spec → finish
+Check conversation history + git status to determine current step; do NOT skip check.
+[/workflow-state:in_progress]
 
-### `workspace/`
-
-Per-developer journals for session history.
-
----
-
-## Best Practices
-
-### Do
-
-- Read the spec index before coding
-- Read the specific topic docs before editing that layer
-- Keep route handlers thin and move logic into helpers/services
-- Update Trellis docs when you discover a new repo-specific rule
-- Prefer small, verifiable steps over big rewrites without checkpoints
-
-### Don't
-
-- Don’t treat bootstrap placeholders as truth
-- Don’t leave missing-doc references in workflow/skills
-- Don’t introduce a new API envelope style casually
-- Don’t silently mock successful writes/auth when env is missing
-- Don’t leave temporary debug logs in request code
-
----
-
-## Quick Reference
-
-| Task Type | Must-read |
-|-----------|-----------|
-| Miniprogram Frontend | `spec/miniprogram/frontend/index.md` + relevant topic docs |
-| API Backend | `spec/api/backend/index.md` + relevant topic docs |
-| Shared contracts | `spec/shared-types/backend/index.md` or `spec/shared-types/frontend/index.md` |
-| Tests / regressions | `spec/unit-test/conventions.md` |
-| Cross-layer | `spec/guides/cross-layer-thinking-guide.md` |
-
-默认先从 `get_context.py --mode packages` 标记的 package 开始读，不要一上来把所有层都读一遍。
-
-**Core Philosophy**: Read before write, document current reality, and keep Trellis in sync with the codebase.
+[workflow-state:completed]
+User commits changes; then run task.py archive.
+[/workflow-state:completed]

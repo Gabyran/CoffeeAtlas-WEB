@@ -1,5 +1,4 @@
 import type { AllBeansLandingMode } from './route-params.ts';
-import { LIGHT_QUESTION_COPY, type GuidedStepKey } from './light-question-copy.ts';
 
 const ALL_DISCOVER_VALUE = 'all';
 
@@ -17,32 +16,13 @@ export interface GuidedDiscoverStepInput {
   selectedProcessStyle: string;
   selectedContinent: string;
   selectedCountry: string;
-  selectedVariety: string;
 }
 
 export interface GuidedDiscoverStep {
-  step: 'process_base' | 'process_style' | 'continent' | 'country' | 'variety' | 'done';
+  step: 'process_base' | 'process_style' | 'continent' | 'done';
   title: string;
   description: string;
 }
-
-export const GUIDED_PROCESS_CHOICES = LIGHT_QUESTION_COPY.miniprogram.guidedCard.processChoices as Array<{
-  id: GuidedProcessChoiceId;
-  title: string;
-  description: string;
-}>;
-
-export const GUIDED_PROCESS_STYLE_CHOICES = LIGHT_QUESTION_COPY.miniprogram.guidedCard.processStyleChoices as Array<{
-  id: GuidedProcessStyleChoiceId;
-  title: string;
-  description: string;
-}>;
-
-export const GUIDED_CONTINENT_CHOICES = LIGHT_QUESTION_COPY.miniprogram.guidedCard.continentChoices as Array<{
-  id: GuidedContinentChoiceId;
-  title: string;
-  description: string;
-}>;
 
 type KeywordGroups = string[][];
 
@@ -108,16 +88,7 @@ function pickOptionByKeywordGroups(
 }
 
 function isSelected(value: string): boolean {
-  return typeof value === 'string' && value !== ALL_DISCOVER_VALUE;
-}
-
-function getGuidedStepCopy(step: GuidedStepKey): GuidedDiscoverStep {
-  const copy = LIGHT_QUESTION_COPY.miniprogram.guidedCard.steps[step];
-  return {
-    step,
-    title: copy.title,
-    description: copy.description,
-  };
+  return value !== ALL_DISCOVER_VALUE;
 }
 
 export function resolveGuidedProcessSelection(
@@ -142,33 +113,37 @@ export function resolveGuidedContinentSelection(
 }
 
 export function buildGuidedDiscoverStep(input: GuidedDiscoverStepInput): GuidedDiscoverStep {
-  if (isSelected(input.selectedVariety)) {
-    return getGuidedStepCopy('done');
+  if (isSelected(input.selectedContinent) || isSelected(input.selectedCountry)) {
+    return {
+      step: 'done',
+      title: '已经帮你缩小到一条可直接浏览的路径',
+      description: '你可以直接往下看推荐和豆单，也可以重新回答一次，换一条路线。',
+    };
   }
 
   if (!isSelected(input.selectedProcessBase)) {
-    return getGuidedStepCopy('process_base');
+    return {
+      step: 'process_base',
+      title: '从选咖啡豆处理法开始',
+      description: '不同的处理带来不同的风格，\n根据喜好，缩小范围。',
+    };
   }
 
   if (!isSelected(input.selectedProcessStyle)) {
-    return getGuidedStepCopy('process_style');
+    return {
+      step: 'process_style',
+      title: '接下来，选更细致的处理风格',
+      description: '传统或是厌氧发酵，风味层次也不一样。',
+    };
   }
 
-  if (!isSelected(input.selectedContinent)) {
-    return getGuidedStepCopy('continent');
-  }
-
-  if (!isSelected(input.selectedCountry)) {
-    return getGuidedStepCopy('country');
-  }
-
-  return getGuidedStepCopy('variety');
+  return {
+    step: 'continent',
+    title: '最后，通过产区来选豆',
+    description: '风土、气候都决定着咖啡豆的糖分和香气。',
+  };
 }
 
-export function shouldExpandGuidedDiscoverCard(_landingMode: AllBeansLandingMode): boolean {
-  return false;
-}
-
-export function shouldShowGuidedDiscoverCard(_landingMode: AllBeansLandingMode): boolean {
-  return false;
+export function shouldExpandGuidedDiscoverCard(landingMode: AllBeansLandingMode): boolean {
+  return landingMode === 'guided';
 }

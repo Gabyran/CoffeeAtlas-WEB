@@ -37,6 +37,7 @@ type ActiveCatalogRow = {
   price_currency: string | null;
   sales_count: unknown;
   image_url: string | null;
+  updated_at: string | null;
   is_in_stock: boolean | null;
 };
 
@@ -78,6 +79,7 @@ function mapActiveCatalogBean(row: ActiveCatalogRow, latestNewArrivalIds?: Set<s
       price_currency: row.price_currency,
       sales_count: row.sales_count,
       image_url: row.image_url,
+      updated_at: row.updated_at,
       is_in_stock: row.is_in_stock,
     },
     roaster,
@@ -131,7 +133,7 @@ export async function getCatalogBeansPage({
   const rows = data as ActiveCatalogRow[];
   const latestNewArrivalIds = await getLatestSyncedNewArrivalBeanIdSet();
 
-  return rows.map((row) => mapActiveCatalogBean(row, latestNewArrivalIds));
+  return rows.map((row) => mapActiveCatalogBean(row, latestNewArrivalIds ?? undefined));
 }
 
 export async function countCatalogBeans(filters: CatalogBeanFilters = {}): Promise<number> {
@@ -184,7 +186,7 @@ export async function getBeanById(id: string): Promise<CoffeeBean | null> {
   const row = data as ActiveCatalogRow;
   const latestNewArrivalIds = await getLatestSyncedNewArrivalBeanIdSet();
 
-  return mapActiveCatalogBean(row, latestNewArrivalIds);
+  return mapActiveCatalogBean(row, latestNewArrivalIds ?? undefined);
 }
 
 export async function getCatalogBeansByIds(ids: string[]): Promise<CoffeeBean[]> {
@@ -209,7 +211,7 @@ export async function getCatalogBeansByIds(ids: string[]): Promise<CoffeeBean[]>
   const beanMap = new Map(
     rows.map((row) => [
       row.roaster_bean_id,
-      mapActiveCatalogBean(row, latestNewArrivalIds),
+      mapActiveCatalogBean(row, latestNewArrivalIds ?? undefined),
     ])
   );
 

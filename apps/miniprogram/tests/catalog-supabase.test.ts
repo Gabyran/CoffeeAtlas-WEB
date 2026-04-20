@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { normalizeLatestNewArrivalBeanIds } from '../src/services/catalog-supabase/shared-core.ts';
 import { mapCatalogBeanRow, mapRoasterDetail, mapRoasterSummary } from '../src/services/catalog-supabase/shared-mappers.ts';
+
+test('normalizeLatestNewArrivalBeanIds falls back when synced ids are empty', () => {
+  assert.equal(normalizeLatestNewArrivalBeanIds([]), null);
+  assert.deepEqual(normalizeLatestNewArrivalBeanIds(['bean-1', 'bean-2']), ['bean-1', 'bean-2']);
+});
 
 test('mapCatalogBeanRow maps supabase row fields into miniprogram bean dto', () => {
   const bean = mapCatalogBeanRow(

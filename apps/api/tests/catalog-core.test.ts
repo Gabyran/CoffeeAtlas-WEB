@@ -85,6 +85,47 @@ test('mapCoffeeBean builds a CoffeeBean from row data without touching the datab
   assert.equal(result.isInStock, true);
 });
 
+test('mapCoffeeBean falls back to recent updated_at when synced ids are unavailable', () => {
+  const beanRow: RoasterBeanRow = {
+    id: 'bean-2',
+    display_name: 'Fresh Crop',
+    roaster_id: 'roaster-1',
+    bean_id: 'origin-2',
+    roast_level: 'Light',
+    price_amount: '128',
+    price_currency: 'CNY',
+    sales_count: 12,
+    image_url: null,
+    updated_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    is_in_stock: true,
+  };
+
+  const roasterRow: RoasterRow = {
+    id: 'roaster-1',
+    name: 'Elevated Roastery',
+    city: 'Shanghai',
+    description: 'Test roaster',
+    logo_url: null,
+    website_url: null,
+    instagram_handle: null,
+  };
+
+  const beanDetail: BeanRow = {
+    id: 'origin-2',
+    canonical_name: 'Fresh Crop',
+    origin_country: 'Kenya',
+    origin_region: 'Nyeri',
+    farm: 'Hill Farm',
+    variety: 'SL28',
+    process_method: 'Washed',
+    flavor_tags: [],
+  };
+
+  const result = mapCoffeeBean(beanRow, roasterRow, beanDetail);
+
+  assert.equal(result.isNewArrival, true);
+});
+
 test('mapRoaster prefers explicit aggregate data but trims fallback logos', () => {
   const row: RoasterRow = {
     id: 'roaster-2',

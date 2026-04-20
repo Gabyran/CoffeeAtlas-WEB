@@ -136,16 +136,22 @@ export function isRecentUpdatedAt(value: string | null | undefined): boolean {
   return time >= Date.now() - NEW_ARRIVAL_WINDOW_DAYS * 24 * 60 * 60 * 1000;
 }
 
+export function normalizeLatestNewArrivalBeanIds(ids: string[]): string[] | null {
+  return ids.length > 0 ? ids : null;
+}
+
 export async function getLatestNewArrivalBeanIds(client: CatalogClient): Promise<string[] | null> {
   try {
     const { data, error } = await client.rpc('latest_synced_new_arrival_ids');
     if (error) return null;
 
-    return Array.from(
-      new Set(
-        ((data ?? []) as LatestNewArrivalIdRow[])
-          .map((row) => row.roaster_bean_id)
-          .filter((id): id is string => typeof id === 'string' && id.length > 0)
+    return normalizeLatestNewArrivalBeanIds(
+      Array.from(
+        new Set(
+          ((data ?? []) as LatestNewArrivalIdRow[])
+            .map((row) => row.roaster_bean_id)
+            .filter((id): id is string => typeof id === 'string' && id.length > 0)
+        )
       )
     );
   } catch {

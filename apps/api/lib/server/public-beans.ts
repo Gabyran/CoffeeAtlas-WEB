@@ -165,7 +165,7 @@ export async function queryBeanIdsFromView({
 }: BeanListFilters & {
   limit: number;
   offset: number;
-  latestNewArrivalBeanIds?: string[];
+  latestNewArrivalBeanIds?: string[] | null;
 }) {
   const supabaseServer = requireSupabaseServer();
   let query = supabaseServer
@@ -220,7 +220,7 @@ export async function countBeanIdsFromView({
   country,
   latestNewArrivalBeanIds,
 }: BeanListFilters & {
-  latestNewArrivalBeanIds?: string[];
+  latestNewArrivalBeanIds?: string[] | null;
 }) {
   const supabaseServer = requireSupabaseServer();
   let query = supabaseServer.from('v_catalog_active').select('roaster_bean_id', { count: 'exact', head: true });

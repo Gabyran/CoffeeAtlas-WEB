@@ -56,8 +56,16 @@ async function loadFallbackBeanSeeds(): Promise<NewArrivalBeanSeed[]> {
   try {
     if (hasSupabaseServerEnv) {
       const ids = await getLatestSyncedNewArrivalBeanIds();
-      if (ids.length === 0) return [];
-      return mapFallbackBeanSeeds(await getCatalogBeansByIds(ids));
+      if (ids && ids.length > 0) {
+        return mapFallbackBeanSeeds(await getCatalogBeansByIds(ids));
+      }
+
+      return mapFallbackBeanSeeds(
+        await getCatalogBeansPage({
+          limit: 120,
+          offset: 0,
+        })
+      );
     }
 
     return mapFallbackBeanSeeds(

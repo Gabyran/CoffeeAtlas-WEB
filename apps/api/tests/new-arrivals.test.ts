@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { extractLatestNewArrivalBeanIds } from '../lib/new-arrivals-helpers.ts';
+import {
+  extractLatestNewArrivalBeanIds,
+  normalizeLatestNewArrivalBeanIds,
+} from '../lib/new-arrivals-helpers.ts';
 
 test('extractLatestNewArrivalBeanIds keeps inserted and upserted roaster beans from the latest sync', () => {
   assert.deepEqual(
@@ -16,4 +19,9 @@ test('extractLatestNewArrivalBeanIds keeps inserted and upserted roaster beans f
     ]),
     ['bean-1', 'bean-2', 'bean-4']
   );
+});
+
+test('normalizeLatestNewArrivalBeanIds treats empty sync results as unavailable', () => {
+  assert.equal(normalizeLatestNewArrivalBeanIds([]), null);
+  assert.deepEqual(normalizeLatestNewArrivalBeanIds(['bean-1']), ['bean-1']);
 });

@@ -125,6 +125,50 @@ def _get_task_status(trellis_dir: Path) -> str:
     return f"Status: READY\nTask: {task_title}\nNext: Continue with implement or check"
 
 
+def _extract_range(content: str, start_header: str, end_header: str) -> str:
+    """Extract lines starting at `## start_header` up to (but excluding) `## end_header`."""
+    lines = content.splitlines()
+    start: "int | None" = None
+    end: int = len(lines)
+    start_match = f"## {start_header}"
+    end_match = f"## {end_header}"
+    for i, line in enumerate(lines):
+        stripped = line.strip()
+        if start is None and stripped == start_match:
+            start = i
+            continue
+        if start is not None and stripped == end_match:
+            end = i
+            break
+    if start is None:
+        return ""
+    return "\n".join(lines[start:end]).rstrip()
+
+
+def _build_workflow_toc(workflow_path: Path) -> str:
+    """Inject workflow guide: TOC + Phase Index + Phase 1/2/3 step details."""
+    content = read_file(workflow_path)
+    if not content:
+        return "No workflow.md found"
+
+    out_lines = [
+        "# Development Workflow — Section Index",
+        "Full guide: .trellis/workflow.md  (read on demand)",
+        "",
+        "## Table of Contents",
+    ]
+    for line in content.splitlines():
+        if line.startswith("## "):
+            out_lines.append(line)
+    out_lines += ["", "---", ""]
+
+    phases = _extract_range(content, "Phase Index", "Workflow State Breadcrumbs")
+    if phases:
+        out_lines.append(phases)
+
+    return "\n".join(out_lines).rstrip()
+
+
 def main() -> None:
     if should_skip_injection():
         sys.exit(0)
@@ -137,18 +181,12 @@ def main() -> None:
         project_dir = Path(".").resolve()
 
     trellis_dir = project_dir / ".trellis"
-    codex_dir = project_dir / ".codex"
 
     output = StringIO()
 
     output.write("""<session-context>
 You are starting a new session in a Trellis-managed project.
 Read and follow all instructions below carefully.
-
-Skill split for this repository:
-- Use project Trellis skills for workflow and repo-specific checks.
-- Reuse the user's global Codex skills for general capabilities such as think, hunt, design, read, write, and health.
-- Do not assume this repository defines its own full replacement set of those general-purpose skills.
 </session-context>
 
 """)
@@ -159,61 +197,68 @@ Skill split for this repository:
     output.write("\n</current-state>\n\n")
 
     output.write("<workflow>\n")
-    workflow_content = read_file(trellis_dir / "workflow.md", "No workflow.md found")
-    output.write(workflow_content)
+    output.write(_build_workflow_toc(trellis_dir / "workflow.md"))
     output.write("\n</workflow>\n\n")
 
     output.write("<guidelines>\n")
-    output.write("**Note**: The guidelines below are index files — they list available guideline documents and their locations.\n")
-    output.write("During actual development, you MUST read the specific guideline files listed in each index's Pre-Development Checklist.\n\n")
+    output.write(
+        "Project spec indexes are listed by path below. Each index contains a "
+        "**Pre-Development Checklist** listing the specific guideline files to "
+        "read before coding.\n\n"
+        "- If you're spawning an implement/check sub-agent, context is injected "
+        "automatically via `{task}/implement.jsonl` / `check.jsonl`. You do NOT "
+        "need to read these indexes yourself.\n"
+        "- If you're editing code directly in the main session, Read the relevant "
+        "index(es) on-demand and follow their Pre-Dev Checklist.\n\n"
+    )
 
+    # guides/ inlined (cross-package thinking, broadly useful)
+    guides_index = trellis_dir / "spec" / "guides" / "index.md"
+    if guides_index.is_file():
+        output.write("## guides (inlined — cross-package thinking guides)\n")
+        output.write(read_file(guides_index))
+        output.write("\n\n")
+
+    # Other indexes — paths only
+    paths: list[str] = []
     spec_dir = trellis_dir / "spec"
     if spec_dir.is_dir():
         for sub in sorted(spec_dir.iterdir()):
             if not sub.is_dir() or sub.name.startswith("."):
                 continue
-
             if sub.name == "guides":
-                index_file = sub / "index.md"
-                if index_file.is_file():
-                    output.write(f"## {sub.name}\n")
-                    output.write(read_file(index_file))
-                    output.write("\n\n")
                 continue
-
             index_file = sub / "index.md"
             if index_file.is_file():
-                output.write(f"## {sub.name}\n")
-                output.write(read_file(index_file))
-                output.write("\n\n")
+                paths.append(f".trellis/spec/{sub.name}/index.md")
             else:
                 for nested in sorted(sub.iterdir()):
                     if not nested.is_dir():
                         continue
                     nested_index = nested / "index.md"
                     if nested_index.is_file():
-                        output.write(f"## {sub.name}/{nested.name}\n")
-                        output.write(read_file(nested_index))
-                        output.write("\n\n")
+                        paths.append(
+                            f".trellis/spec/{sub.name}/{nested.name}/index.md"
+                        )
 
+    if paths:
+        output.write("## Available spec indexes (read on demand)\n")
+        for p in paths:
+            output.write(f"- {p}\n")
+        output.write("\n")
+
+    output.write(
+        "Discover more via: "
+        "`python3 ./.trellis/scripts/get_context.py --mode packages`\n"
+    )
     output.write("</guidelines>\n\n")
-
-    # Inject start skill as instructions (Codex uses skills, not slash commands)
-    start_skill = codex_dir / "skills" / "start" / "SKILL.md"
-    if not start_skill.is_file():
-        start_skill = project_dir / ".agents" / "skills" / "start" / "SKILL.md"
-    if start_skill.is_file():
-        output.write("<instructions>\n")
-        output.write(read_file(start_skill))
-        output.write("\n</instructions>\n\n")
 
     task_status = _get_task_status(trellis_dir)
     output.write(f"<task-status>\n{task_status}\n</task-status>\n\n")
 
     output.write("""<ready>
-Context loaded. Steps 1-3 (workflow, context, guidelines) are already injected above — do NOT re-read them.
-Start from Step 4. Wait for user's first message, then follow <instructions> to handle their request.
-For general capability work, prefer the user's global Codex/Waza-style skills; use repository Trellis skills for flow control and project-specific checks.
+Context loaded. Workflow index, project state, and guidelines are already injected above — do NOT re-read them.
+Wait for the user's first message, then handle it following the workflow guide.
 If there is an active task, ask whether to continue it.
 </ready>""")
 

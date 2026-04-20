@@ -1,5 +1,6 @@
 import { isProcessBaseId, isProcessStyleId, normalizeProcess } from '@coffee-atlas/shared-types';
 
+import { isRecentUpdatedAt } from './new-arrivals-helpers.ts';
 import { normalizeSalesCount } from './sales.ts';
 import { sampleCatalog } from './sample-data.ts';
 import type { CoffeeBean, Roaster } from './catalog-types.ts';
@@ -119,7 +120,7 @@ export function mapCoffeeBean(
     salesCount: normalizeSalesCount(item.sales_count) ?? 0,
     tastingNotes: Array.isArray(bean?.flavor_tags) ? bean.flavor_tags : [],
     imageUrl: item.image_url,
-    isNewArrival: latestNewArrivalIds?.has(item.id) ?? false,
+    isNewArrival: latestNewArrivalIds?.has(item.id) ?? isRecentUpdatedAt(item.updated_at),
     isInStock: item.is_in_stock ?? true,
   };
 }
