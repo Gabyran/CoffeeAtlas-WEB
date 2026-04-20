@@ -268,3 +268,36 @@ Added Taobao desktop preflight for daily sync, covered preflight and daily orche
 ### Next Steps
 
 - None - task complete
+
+
+## Session 8: 淘宝同步：重新上架、DRAFT转正与单店拆分
+
+**Date**: 2026-04-20
+**Task**: 淘宝同步：重新上架、DRAFT转正与单店拆分
+**Branch**: `main`
+
+### Summary
+
+修复已下架商品无法重新上架和DRAFT无法转正的问题；放宽cleanup blocking warning策略；将daily同步脚本拆分为支持单店运行模式，避免连续操作触发风控。typecheck通过，112个测试全部通过。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `253c9f9` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
