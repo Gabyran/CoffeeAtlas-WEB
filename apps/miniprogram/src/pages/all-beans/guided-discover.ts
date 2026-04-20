@@ -147,3 +147,7 @@ export function buildGuidedDiscoverStep(input: GuidedDiscoverStepInput): GuidedD
 export function shouldExpandGuidedDiscoverCard(landingMode: AllBeansLandingMode): boolean {
   return landingMode === 'guided';
 }
+
+export function shouldShowGuidedDiscoverCard(_landingMode: AllBeansLandingMode): boolean {
+  return false;
+}

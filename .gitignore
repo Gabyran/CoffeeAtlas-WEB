@@ -30,3 +30,6 @@ temp
 output/
 __pycache__/
 *.pyc
+
+# Claude Code local settings (contains credentials & permissions)
+.claude/settings.local.json

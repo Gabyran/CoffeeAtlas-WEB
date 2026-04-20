@@ -30,7 +30,12 @@ export default defineConfig(async (merge) => {
       options: {}
     },
     framework: 'react',
-    compiler: 'webpack5',
+    compiler: {
+      type: 'webpack5',
+      prebundle: {
+        exclude: ['react', 'react-dom', '@tarojs/taro']
+      }
+    },
     alias: workspacePackageAliases,
     cache: {
       enable: false

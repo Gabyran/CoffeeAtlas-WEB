@@ -30,6 +30,16 @@ pnpm typecheck
 pnpm --filter @coffeeatlas/miniprogram test
 ```
 
+### 淘宝同步相关（apps/api）
+
+```bash
+pnpm sync:taobao:daily          # 每日同步（preflight + 上新 + 下架清理）
+pnpm sync:taobao:new            # 单店上新抓取
+pnpm sync:taobao:shop           # 单店全量同步
+pnpm cleanup:taobao:offshelf    # 下架商品清理归档
+pnpm import:taobao:bindings     # 导入淘宝-烘焙商绑定关系
+```
+
 `pnpm dev` 当前等同于 `pnpm dev:miniprogram:auto`，会监听小程序和共享包改动，并自动重启 `dev:weapp`。
 需要本地联调用户、收藏或其他 `/api/v1/*` 时，再单独运行 `pnpm dev:api`。
 
