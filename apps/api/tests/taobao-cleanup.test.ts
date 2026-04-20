@@ -156,6 +156,22 @@ test('resolvePreviewWarnings blocks apply on incomplete scans', () => {
   ]);
 });
 
+test('listing_scan_hit_safe_limit and listing_growth_insufficient are non-blocking', () => {
+  const warnings = taobaoCleanupInternals.resolvePreviewWarnings({
+    currentDbCount: 12,
+    scannedTitleCount: 2,
+    scannedStructuredCount: 1,
+    candidateCount: 6,
+    stopReason: 'safe_limit',
+    scanWarnings: [],
+  });
+
+  assert.ok(warnings.includes('listing_scan_hit_safe_limit'));
+  assert.ok(warnings.includes('listing_growth_insufficient'));
+  // listing_scan_too_small_for_db_count 和 all_items_marked_candidate 仍为 blocking
+  assert.ok(warnings.includes('listing_scan_too_small_for_db_count'));
+});
+
 test('preview writes snapshot and returns applyable preview when scan is complete', async () => {
   const snapshotDir = await mkdtemp(path.join(tmpdir(), 'coffeeatlas-cleanup-preview-'));
   const reads = [

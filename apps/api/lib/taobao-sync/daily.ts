@@ -1,6 +1,6 @@
 import { applyTaobaoOffshelfCleanup, previewTaobaoOffshelfCleanup, taobaoCleanupConstants } from './cleanup.ts';
 import { TaobaoSyncRepository } from './repository.ts';
-import { runTaobaoNewArrivalsSync } from './sync.ts';
+import { runTaobaoNewArrivalsSync, runTaobaoSingleBindingSync } from './sync.ts';
 import type {
   TaobaoBinding,
   TaobaoCleanupApplyResult,
@@ -18,6 +18,7 @@ type DailySyncDependencies = {
   listActiveBindings: () => Promise<TaobaoBinding[]>;
   previewCleanup: (bindingId: string) => Promise<TaobaoCleanupPreview>;
   applyCleanup: (token: string) => Promise<TaobaoCleanupApplyResult>;
+  targetBinding?: TaobaoBinding;
 };
 
 export type TaobaoDailyCleanupResult = {
@@ -64,16 +65,24 @@ function resolveDependencies(deps?: Partial<DailySyncDependencies>): DailySyncDe
       listActiveBindings: deps.listActiveBindings,
       previewCleanup: deps.previewCleanup,
       applyCleanup: deps.applyCleanup,
+      targetBinding: deps.targetBinding,
     };
   }
 
   const repository = new TaobaoSyncRepository();
+  const targetBinding = deps?.targetBinding;
 
   return {
     logger,
     now,
-    runArrivalsSync: deps?.runArrivalsSync ?? runTaobaoNewArrivalsSync,
-    listActiveBindings: deps?.listActiveBindings ?? (() => repository.listActiveBindings()),
+    runArrivalsSync:
+      deps?.runArrivalsSync ??
+      (targetBinding
+        ? () => runTaobaoSingleBindingSync({ binding: targetBinding })
+        : runTaobaoNewArrivalsSync),
+    listActiveBindings:
+      deps?.listActiveBindings ??
+      (targetBinding ? () => Promise.resolve([targetBinding]) : () => repository.listActiveBindings()),
     previewCleanup:
       deps?.previewCleanup ??
       ((bindingId: string) =>
@@ -88,6 +97,7 @@ function resolveDependencies(deps?: Partial<DailySyncDependencies>): DailySyncDe
           { token, confirmText: taobaoCleanupConstants.confirmText },
           { repository }
         )),
+    targetBinding,
   };
 }
 
@@ -106,7 +116,10 @@ export async function runTaobaoDailySync(deps?: Partial<DailySyncDependencies>):
   const resolved = resolveDependencies(deps);
   const startTime = resolved.now();
 
-  resolved.logger.log('=== 淘宝每日同步开始 ===');
+  const shopLabel = resolved.targetBinding
+    ? `【${resolved.targetBinding.roasterName}】`
+    : '全部店铺';
+  resolved.logger.log(`=== 淘宝每日同步开始 (${shopLabel}) ===`);
   resolved.logger.log('[1/2] 上新同步...');
 
   const arrivalsResult = await resolved.runArrivalsSync();

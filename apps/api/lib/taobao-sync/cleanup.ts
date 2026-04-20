@@ -32,7 +32,11 @@ const CLEANUP_NO_GROWTH_LIMIT = 2;
 const CLEANUP_SCROLL_AMOUNT = 720;
 const CLEANUP_TAB_LABELS = ['全部宝贝', '所有宝贝', '在售', '宝贝'];
 const LISTING_END_PATTERN = /没有更多|到底了|已经到底|已加载全部|没有啦/;
-const NON_BLOCKING_WARNINGS = new Set(['listing_tab_not_found']);
+const NON_BLOCKING_WARNINGS = new Set([
+  'listing_tab_not_found',
+  'listing_scan_hit_safe_limit',
+  'listing_growth_insufficient',
+]);
 
 type ListingStopReason = 'no_growth' | 'end_reached' | 'safe_limit';
 

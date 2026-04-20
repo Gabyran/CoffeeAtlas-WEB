@@ -478,31 +478,6 @@ async function syncSingleProduct(args: {
     existing = await repository.findRoasterBeanByDisplayName(binding.roasterId, product.title);
   }
 
-  if (
-    shouldSkipExistingProduct(existing, product) &&
-    existing?.sourceItemId === product.sourceItemId &&
-    (existing.sourceSkuId ?? null) === product.sourceSkuId
-  ) {
-    summary.skippedRows += 1;
-    await repository.recordEvent({
-      importJobId,
-      sourceId: binding.sourceId,
-      entityType: 'ROASTER_BEAN',
-      entityId: existing.id,
-      action: 'SKIP',
-      payload: {
-        roasterId: binding.roasterId,
-        sourceId: binding.sourceId,
-        sourceItemId: product.sourceItemId,
-        sourceSkuId: product.sourceSkuId,
-        displayName: product.title,
-        priceAmount: product.priceAmount,
-        reason: 'identity_and_price_unchanged',
-      },
-    });
-    return;
-  }
-
   let ocrText = '';
   let visionCandidate = null;
   let candidate = args.parsedCandidate;
@@ -599,6 +574,36 @@ async function syncSingleProduct(args: {
     summary.draftRows += 1;
   }
 
+  const needsRestoreFromArchived = existing?.status === 'ARCHIVED';
+  const needsDraftToActive = existing?.status === 'DRAFT' && status === 'ACTIVE';
+
+  if (
+    !needsRestoreFromArchived &&
+    !needsDraftToActive &&
+    shouldSkipExistingProduct(existing, product) &&
+    existing?.sourceItemId === product.sourceItemId &&
+    (existing.sourceSkuId ?? null) === product.sourceSkuId
+  ) {
+    summary.skippedRows += 1;
+    await repository.recordEvent({
+      importJobId,
+      sourceId: binding.sourceId,
+      entityType: 'ROASTER_BEAN',
+      entityId: existing.id,
+      action: 'SKIP',
+      payload: {
+        roasterId: binding.roasterId,
+        sourceId: binding.sourceId,
+        sourceItemId: product.sourceItemId,
+        sourceSkuId: product.sourceSkuId,
+        displayName: product.title,
+        priceAmount: product.priceAmount,
+        reason: 'identity_and_price_unchanged',
+      },
+    });
+    return;
+  }
+
   const persisted = await repository.persistRoasterBean({
     binding,
     product,
@@ -615,23 +620,31 @@ async function syncSingleProduct(args: {
     summary.updatedRoasterBeans += 1;
   }
 
+  if (needsRestoreFromArchived) {
+    console.log(`  重新上架：${product.title}（从 ARCHIVED 恢复为 ${status}）`);
+  } else if (needsDraftToActive) {
+    console.log(`  DRAFT 转正：${product.title}`);
+  }
+
   await repository.recordEvent({
     importJobId,
     sourceId: binding.sourceId,
     entityType: 'ROASTER_BEAN',
     entityId: persisted.roasterBeanId,
     action: persisted.action === 'inserted' ? 'INSERT' : 'UPSERT',
-        payload: {
-          ...persisted.output,
-          rawTitle: product.title,
-          matchedShop: binding.canonicalShopName,
-          parseSource: candidate.parseSource,
-          parseWarnings: candidate.parseWarnings,
-          detailClickUsed: enrichment.detailClickUsed,
-          listingTextUsed: Boolean(product.listingText),
-          ocrUsed: ocrText.length > 0,
-          visionUsed: Boolean(visionCandidate),
-        },
+    payload: {
+      ...persisted.output,
+      rawTitle: product.title,
+      matchedShop: binding.canonicalShopName,
+      parseSource: candidate.parseSource,
+      parseWarnings: candidate.parseWarnings,
+      detailClickUsed: enrichment.detailClickUsed,
+      listingTextUsed: Boolean(product.listingText),
+      ocrUsed: ocrText.length > 0,
+      visionUsed: Boolean(visionCandidate),
+      restoredFromArchived: needsRestoreFromArchived,
+      draftToActive: needsDraftToActive,
+    },
   });
 }
 
@@ -644,6 +657,7 @@ async function syncSingleShop(args: {
   config: ReturnType<typeof getTaobaoSyncConfig>;
 }) {
   const { client, repository, importJobId, binding, summary, config } = args;
+  const errorRowsAtStart = summary.errorRows;
 
   const trackedProducts = await repository.listTrackedRoasterBeansForBinding(binding);
   const { visibleProducts, collectionMode } = await collectShopProducts({
@@ -797,6 +811,12 @@ async function syncSingleShop(args: {
     }
   }
 
+  console.log(
+    `  ${binding.roasterName} 汇总: 采集=${visibleProducts.length}, 待处理=${limitedProducts.length}, ` +
+      `跳过=${visibleProducts.length - pendingProducts.length}, 限流丢弃=${pendingProducts.length - limitedProducts.length}, ` +
+      `error=${summary.errorRows - errorRowsAtStart}`
+  );
+
   await repository.touchBinding(binding.id);
 }
 
@@ -879,6 +899,9 @@ async function runTaobaoBindingsSync(args: {
           if (isRiskAbortError(error)) {
             abortedByRisk = true;
             summary.failedShops += 1;
+            console.error(
+              `淘宝上新同步店铺风控中断：${binding.roasterName} / ${binding.canonicalShopName} — ${error.signals.map((s) => s.reason).join(', ')}`
+            );
             await repository.recordEvent({
               importJobId,
               sourceId: binding.sourceId,
@@ -892,7 +915,7 @@ async function runTaobaoBindingsSync(args: {
               },
               errorMessage: error.message,
             });
-            throw error;
+            break;
           }
 
           if (attempt >= config.maxShopRetries) {

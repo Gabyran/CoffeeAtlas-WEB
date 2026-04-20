@@ -238,3 +238,36 @@ test('runTaobaoDailySync continues remaining bindings after a cleanup error and 
   assert.equal(result.summary.cleanup[0]?.error, 'MCP unavailable');
   assert.equal(result.summary.cleanup[1]?.roaster, bindingB.roasterName);
 });
+
+test('runTaobaoDailySync continues cleanup even when arrivals returns PARTIAL (risk aborted)', async () => {
+  const result = await runTaobaoDailySync({
+    logger: createLogger().logger,
+    now: createNow([0, 3000]),
+    runArrivalsSync: async () =>
+      createArrivalsResult('PARTIAL'),
+    listActiveBindings: async () => [bindingA],
+    previewCleanup: async () => createPreview({ candidates: [] }),
+    applyCleanup: async () => createApplyResult(),
+  });
+
+  assert.equal(result.summary.status, 'PARTIAL');
+  assert.equal(result.summary.arrivals.failedShops, 0);
+  assert.equal(result.summary.cleanup.length, 1);
+});
+
+test('runTaobaoDailySync outputs single-shop label when targetBinding is provided', async () => {
+  const { logger, logs } = createLogger();
+
+  const result = await runTaobaoDailySync({
+    logger,
+    now: createNow([0, 1500]),
+    runArrivalsSync: async () => createArrivalsResult('SUCCEEDED'),
+    listActiveBindings: async () => [bindingA],
+    previewCleanup: async () => createPreview(),
+    applyCleanup: async () => createApplyResult(),
+    targetBinding: bindingA,
+  });
+
+  assert.equal(result.exitCode, 0);
+  assert.ok(logs.some((log) => log.includes('【白鲸咖啡】')));
+});
