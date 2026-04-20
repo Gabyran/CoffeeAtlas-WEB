@@ -301,3 +301,36 @@ Added Taobao desktop preflight for daily sync, covered preflight and daily orche
 ### Next Steps
 
 - None - task complete
+
+
+## Session 9: 上新查询支持单店同步任务
+
+**Date**: 2026-04-21
+**Task**: 上新查询支持单店同步任务
+**Branch**: `main`
+
+### Summary
+
+修改上新查询逻辑：同时查询 sync-taobao-new-arrivals 和 sync-taobao-single-shop:* 两类同步任务，解决拆分单店同步后上新页面不显示 CoffeeBuff 等店铺新品的问题
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b59f12e` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
