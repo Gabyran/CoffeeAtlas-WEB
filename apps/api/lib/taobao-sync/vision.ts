@@ -62,13 +62,18 @@ export async function runVisionBeanFallback(args: {
     throw new Error(`Vision request failed: ${response.status} ${body}`);
   }
 
-  const payload = JSON.parse(body) as {
+  let payload: {
     choices?: Array<{
       message?: {
         content?: string;
       };
     }>;
   };
+  try {
+    payload = JSON.parse(body) as typeof payload;
+  } catch {
+    return null;
+  }
 
   const content = payload.choices?.[0]?.message?.content;
   if (!content) return null;
@@ -76,5 +81,9 @@ export async function runVisionBeanFallback(args: {
   const json = extractJsonObject(content);
   if (!json) return null;
 
-  return JSON.parse(json) as VisionBeanCandidate;
+  try {
+    return JSON.parse(json) as VisionBeanCandidate;
+  } catch {
+    return null;
+  }
 }

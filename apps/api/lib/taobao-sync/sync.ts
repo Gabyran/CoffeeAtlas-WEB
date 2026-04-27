@@ -234,6 +234,13 @@ function mergeBrowseHistoryIntoProduct(product: TaobaoStructuredProduct, history
   } satisfies TaobaoStructuredProduct;
 }
 
+const TAOBAO_IMAGE_URL_PATTERN = /https?:\/\/(?:img|gw)\.alicdn\.com\/[^\s"'<>]+/i;
+
+function extractImageUrlFromPageContent(content: string): string | null {
+  const match = content.match(TAOBAO_IMAGE_URL_PATTERN);
+  return match ? match[0].trim() : null;
+}
+
 async function openShopListingPage(args: {
   client: TaobaoMcpClient;
   binding: TaobaoBinding;
@@ -320,20 +327,40 @@ async function collectProductsFromCurrentPage(args: {
     if (noGrowthRounds >= SYNC_NO_GROWTH_LIMIT) break;
   }
 
-  const visibleProducts = [...productMap.values()];
-  if (args.allowSearchFallback && binding.searchKeyword) {
+  let visibleProducts = [...productMap.values()];
+
+  // Always try to enrich missing imageUrls from search results, even in new_arrivals mode
+  if (binding.searchKeyword && visibleProducts.some((p) => !p.imageUrl)) {
     const searchResult = await client.searchProducts(binding.searchKeyword).catch(() => null);
     if (searchResult?.products?.length) {
-      const fallbackProducts = mergeVisibleProductsWithSearchProducts({
-        binding,
-        visibleProducts,
-        searchProducts: searchResult.products,
-      });
-      return {
-        visibleTitles: fallbackProducts.map((product) => product.title),
-        visibleProducts: fallbackProducts,
-        shopText: mergeTexts([mergeTexts(contentParts), fallbackProducts.map((product) => product.title).join('\n')]),
-      };
+      const supplemental = filterStructuredProductsForShop(binding, searchResult.products, searchResult.products.length);
+      for (const product of visibleProducts) {
+        if (product.imageUrl) continue;
+        const match = supplemental.find(
+          (s) => normalizeComparisonText(s.title) === normalizeComparisonText(product.title)
+        );
+        if (match?.imageUrl) {
+          product.imageUrl = match.imageUrl;
+        }
+        if (match?.productUrl && !product.productUrl) {
+          product.productUrl = match.productUrl;
+        }
+        if (match?.sourceItemId && !product.sourceItemId) {
+          product.sourceItemId = match.sourceItemId;
+        }
+        if (match?.sourceSkuId && !product.sourceSkuId) {
+          product.sourceSkuId = match.sourceSkuId;
+        }
+      }
+
+      if (args.allowSearchFallback) {
+        const fallbackProducts = mergeVisibleProductsWithSearchProducts({
+          binding,
+          visibleProducts,
+          searchProducts: searchResult.products,
+        });
+        visibleProducts = fallbackProducts;
+      }
     }
   }
 
@@ -430,6 +457,34 @@ async function enrichProductFromShopInteraction(args: {
     if (matchedHistoryItem) {
       enrichedProduct = mergeBrowseHistoryIntoProduct(args.product, matchedHistoryItem);
       break;
+    }
+
+    // Fallback: if click succeeded but browse history has no image, try reading current page content
+    if (!enrichedProduct.imageUrl) {
+      try {
+        const pageRead = await args.client.readPageContent({ maxLength: args.config.pageReadMaxLength });
+        const pageImageUrl = extractImageUrlFromPageContent(pageRead.content);
+        if (pageImageUrl) {
+          enrichedProduct = { ...enrichedProduct, imageUrl: pageImageUrl };
+        }
+        // Also try to extract product URL from page if missing
+        if (!enrichedProduct.productUrl) {
+          const urlMatch = pageRead.content.match(/https?:\/\/(?:item\.taobao\.com|detail\.tmall\.com)\/[^\s"'<>]+/i);
+          if (urlMatch) {
+            const identity = normalizeTaobaoProductIdentity(urlMatch[0]);
+            if (identity) {
+              enrichedProduct = {
+                ...enrichedProduct,
+                productUrl: identity.canonicalProductUrl,
+                sourceItemId: identity.itemId,
+                sourceSkuId: identity.skuId,
+              };
+            }
+          }
+        }
+      } catch {
+        // ignore page-read failures during enrichment
+      }
     }
   }
 

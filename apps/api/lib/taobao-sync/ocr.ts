@@ -20,16 +20,34 @@ function inferExtensionFromUrl(url: string) {
   }
 }
 
-async function downloadImageToTemp(url: string) {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Failed to download image for OCR: ${response.status}`);
-  }
+const IMAGE_DOWNLOAD_TIMEOUT_MS = 10_000;
+const IMAGE_DOWNLOAD_MAX_RETRIES = 3;
 
-  const filePath = path.join(tmpdir(), `coffeeatlas-taobao-ocr-${randomUUID()}${inferExtensionFromUrl(url)}`);
-  const buffer = Buffer.from(await response.arrayBuffer());
-  await fs.writeFile(filePath, buffer);
-  return filePath;
+async function downloadImageToTemp(url: string, attempt = 1): Promise<string> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), IMAGE_DOWNLOAD_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const filePath = path.join(tmpdir(), `coffeeatlas-taobao-ocr-${randomUUID()}${inferExtensionFromUrl(url)}`);
+    const buffer = Buffer.from(await response.arrayBuffer());
+    await fs.writeFile(filePath, buffer);
+    return filePath;
+  } catch (error) {
+    if (attempt < IMAGE_DOWNLOAD_MAX_RETRIES) {
+      const delay = attempt * 1000;
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      return downloadImageToTemp(url, attempt + 1);
+    }
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to download image for OCR after ${IMAGE_DOWNLOAD_MAX_RETRIES} attempts: ${message}`);
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 function classifyOcrConfidence(text: string) {
