@@ -1,6 +1,6 @@
 import type { PublishStatus } from '@/lib/types';
 
-import { requireSupabaseServer } from '@/lib/supabase';
+import { requireSupabaseServiceRoleServer } from '@/lib/supabase';
 
 import {
   badRequest,
@@ -8,6 +8,7 @@ import {
   normalizeCountryCode,
   normalizeName,
   normalizeString,
+  notFound,
   parseJsonNumber,
   parseStringArray,
   sanitizeSearchTerm,
@@ -54,6 +55,10 @@ type CreateAdminBeanInput = {
 
 const VALID_STATUSES: PublishStatus[] = ['DRAFT', 'ACTIVE', 'ARCHIVED'];
 
+function hasOwnField(input: object, field: string): boolean {
+  return Object.prototype.hasOwnProperty.call(input, field);
+}
+
 function normalizeCurrency(value: unknown): string {
   const normalized = normalizeString(typeof value === 'string' ? value : undefined) ?? 'CNY';
   if (!/^[A-Za-z]{3}$/.test(normalized)) {
@@ -80,7 +85,7 @@ function wildcardQuery(value: string) {
 }
 
 async function findRoasterById(id: string) {
-  const supabaseServer = requireSupabaseServer();
+  const supabaseServer = requireSupabaseServiceRoleServer();
   const { data, error } = await supabaseServer
     .from('roasters')
     .select('id, name, city, country_code')
@@ -92,7 +97,7 @@ async function findRoasterById(id: string) {
 }
 
 async function findExistingRoasterByName(name: string) {
-  const supabaseServer = requireSupabaseServer();
+  const supabaseServer = requireSupabaseServiceRoleServer();
   const exactName = normalizeString(name);
   if (!exactName) return null;
 
@@ -119,7 +124,7 @@ async function findExistingRoasterByName(name: string) {
 }
 
 async function findExistingBeanByName(name: string) {
-  const supabaseServer = requireSupabaseServer();
+  const supabaseServer = requireSupabaseServiceRoleServer();
   const exactName = normalizeString(name);
   if (!exactName) return null;
 
@@ -136,7 +141,7 @@ async function findExistingBeanByName(name: string) {
 }
 
 async function findExistingRoasterBean(roasterId: string, beanId: string, displayName: string) {
-  const supabaseServer = requireSupabaseServer();
+  const supabaseServer = requireSupabaseServiceRoleServer();
   const { data, error } = await supabaseServer
     .from('roaster_beans')
     .select('id, roaster_id, bean_id, display_name')
@@ -158,7 +163,7 @@ export async function searchAdminRoasters({
   q?: string;
   limit: number;
 }) {
-  const supabaseServer = requireSupabaseServer();
+  const supabaseServer = requireSupabaseServiceRoleServer();
   const normalizedQ = sanitizeSearchTerm(normalizeString(q));
 
   let query = supabaseServer
@@ -184,7 +189,7 @@ export async function searchAdminRoasters({
 }
 
 export async function createAdminBean(input: CreateAdminBeanInput) {
-  const supabaseServer = requireSupabaseServer();
+  const supabaseServer = requireSupabaseServiceRoleServer();
 
   const roasterId = normalizeString(typeof input.roasterId === 'string' ? input.roasterId : undefined);
   const roasterName = normalizeString(typeof input.roasterName === 'string' ? input.roasterName : undefined);
@@ -295,4 +300,222 @@ export async function createAdminBean(input: CreateAdminBeanInput) {
       isInStock,
     },
   };
+}
+
+// ───────────────────────────────────────────
+// Admin RoasterBean List / Update / Delete
+// ───────────────────────────────────────────
+
+type AdminRoasterBeanListRow = {
+  id: string;
+  roaster_id: string;
+  bean_id: string;
+  source_id: string | null;
+  display_name: string;
+  roast_level: string | null;
+  price_amount: number | null;
+  price_currency: string;
+  weight_grams: number | null;
+  product_url: string | null;
+  image_url: string | null;
+  source_item_id: string | null;
+  source_sku_id: string | null;
+  status: PublishStatus;
+  is_in_stock: boolean;
+  created_at: string;
+  updated_at: string;
+  roasters: { name: string } | null;
+  beans: { canonical_name: string; origin_country: string | null; origin_region: string | null; process_method: string | null; variety: string | null } | null;
+};
+
+export type AdminRoasterBeanListItem = {
+  id: string;
+  roasterId: string;
+  roasterName: string;
+  beanId: string;
+  beanName: string;
+  originCountry: string | null;
+  originRegion: string | null;
+  processMethod: string | null;
+  variety: string | null;
+  displayName: string;
+  roastLevel: string | null;
+  priceAmount: number | null;
+  priceCurrency: string;
+  weightGrams: number | null;
+  productUrl: string | null;
+  imageUrl: string | null;
+  sourceItemId: string | null;
+  sourceSkuId: string | null;
+  status: PublishStatus;
+  isInStock: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export async function listAdminRoasterBeans({
+  status,
+  roasterId,
+  q,
+  page,
+  pageSize,
+}: {
+  status?: PublishStatus | null;
+  roasterId?: string | null;
+  q?: string | null;
+  page: number;
+  pageSize: number;
+}) {
+  const supabaseServer = requireSupabaseServiceRoleServer();
+  const offset = (page - 1) * pageSize;
+
+  let query = supabaseServer
+    .from('roaster_beans')
+    .select(
+      'id, roaster_id, bean_id, source_id, display_name, roast_level, price_amount, price_currency, weight_grams, product_url, image_url, source_item_id, source_sku_id, status, is_in_stock, created_at, updated_at, roasters(name), beans(canonical_name, origin_country, origin_region, process_method, variety)',
+      { count: 'exact' }
+    )
+    .order('updated_at', { ascending: false })
+    .range(offset, offset + pageSize - 1);
+
+  if (status) {
+    query = query.eq('status', status);
+  }
+  if (roasterId) {
+    query = query.eq('roaster_id', roasterId);
+  }
+  if (q) {
+    const sanitized = sanitizeSearchTerm(normalizeString(q));
+    if (sanitized) {
+      const wildcard = wildcardQuery(sanitized);
+      query = query.or(`display_name.ilike.${wildcard},source_item_id.ilike.${wildcard}`);
+    }
+  }
+
+  const { data, error, count } = await query;
+  if (error) throw error;
+
+  const rows = (data ?? []) as unknown as AdminRoasterBeanListRow[];
+  const items: AdminRoasterBeanListItem[] = rows.map((row) => ({
+    id: row.id,
+    roasterId: row.roaster_id,
+    roasterName: row.roasters?.name ?? '',
+    beanId: row.bean_id,
+    beanName: row.beans?.canonical_name ?? '',
+    originCountry: row.beans?.origin_country ?? null,
+    originRegion: row.beans?.origin_region ?? null,
+    processMethod: row.beans?.process_method ?? null,
+    variety: row.beans?.variety ?? null,
+    displayName: row.display_name,
+    roastLevel: row.roast_level,
+    priceAmount: row.price_amount,
+    priceCurrency: row.price_currency,
+    weightGrams: row.weight_grams,
+    productUrl: row.product_url,
+    imageUrl: row.image_url,
+    sourceItemId: row.source_item_id,
+    sourceSkuId: row.source_sku_id,
+    status: row.status,
+    isInStock: row.is_in_stock,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }));
+
+  return {
+    items,
+    total: count ?? 0,
+    page,
+    pageSize,
+  };
+}
+
+type UpdateAdminRoasterBeanInput = {
+  displayName?: unknown;
+  roastLevel?: unknown;
+  priceAmount?: unknown;
+  weightGrams?: unknown;
+  productUrl?: unknown;
+  status?: unknown;
+  isInStock?: unknown;
+};
+
+export async function updateAdminRoasterBean(id: string, input: UpdateAdminRoasterBeanInput) {
+  const supabaseServer = requireSupabaseServiceRoleServer();
+
+  const { data: existing, error: existingError } = await supabaseServer
+    .from('roaster_beans')
+    .select('id')
+    .eq('id', id)
+    .maybeSingle();
+  if (existingError) throw existingError;
+  if (!existing) {
+    notFound('Roaster bean not found', 'not_found');
+  }
+
+  const updates: Record<string, unknown> = {};
+
+  if (hasOwnField(input, 'displayName')) {
+    const displayName = normalizeString(typeof input.displayName === 'string' ? input.displayName : undefined);
+    if (!displayName) badRequest('displayName is required', 'invalid_payload');
+    updates.display_name = displayName;
+  }
+
+  if (hasOwnField(input, 'roastLevel')) {
+    const roastLevel = normalizeString(typeof input.roastLevel === 'string' ? input.roastLevel : undefined);
+    updates.roast_level = roastLevel ?? null;
+  }
+
+  if (hasOwnField(input, 'priceAmount')) {
+    const priceAmount = parseJsonNumber(input.priceAmount, 'priceAmount');
+    updates.price_amount = priceAmount ?? null;
+  }
+
+  if (hasOwnField(input, 'weightGrams')) {
+    const weightGrams = parseJsonNumber(input.weightGrams, 'weightGrams');
+    updates.weight_grams = weightGrams ?? null;
+  }
+
+  if (hasOwnField(input, 'productUrl')) {
+    const productUrl = normalizeString(typeof input.productUrl === 'string' ? input.productUrl : undefined);
+    updates.product_url = productUrl ?? null;
+  }
+
+  if (input.status !== undefined) {
+    updates.status = validateStatus(input.status);
+  }
+
+  if (input.isInStock !== undefined) {
+    updates.is_in_stock = validateBoolean(input.isInStock, 'isInStock', true);
+  }
+
+  if (Object.keys(updates).length === 0) {
+    badRequest('No fields to update', 'invalid_payload');
+  }
+
+  const { data, error } = await supabaseServer
+    .from('roaster_beans')
+    .update(updates)
+    .eq('id', id)
+    .select('id, display_name, status, updated_at')
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteAdminRoasterBean(id: string) {
+  const supabaseServer = requireSupabaseServiceRoleServer();
+
+  const { data: existing, error: existingError } = await supabaseServer
+    .from('roaster_beans')
+    .select('id')
+    .eq('id', id)
+    .maybeSingle();
+  if (existingError) throw existingError;
+  if (!existing) {
+    notFound('Roaster bean not found', 'not_found');
+  }
+
+  const { error } = await supabaseServer.from('roaster_beans').delete().eq('id', id);
+  if (error) throw error;
 }

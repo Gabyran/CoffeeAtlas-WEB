@@ -8,6 +8,7 @@ import {
   clearPendingFavorites,
   setStoredUser,
   clearStoredUser,
+  getStoredUser,
 } from './storage.ts';
 import type { AuthUser } from '../types/index.ts';
 
@@ -15,13 +16,83 @@ export function isLoggedIn(): boolean {
   return Boolean(getToken());
 }
 
+export class AuthError extends Error {
+  code: string;
+
+  constructor(code: string, message: string) {
+    super(message);
+    this.name = 'AuthError';
+    this.code = code;
+  }
+}
+
+export async function validateSession(): Promise<boolean> {
+  const token = getToken();
+  if (!token) return false;
+
+  try {
+    const { getMe } = await import('../services/api.ts');
+    await getMe();
+    return true;
+  } catch {
+    logout();
+    return false;
+  }
+}
+
+async function withRetry<T>(
+  operation: () => Promise<T>,
+  options: { maxRetries?: number; delayMs?: number; operationName: string },
+): Promise<T> {
+  const { maxRetries = 2, delayMs = 1000, operationName } = options;
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      if (error instanceof AuthError) {
+        throw error;
+      }
+
+      if (attempt < maxRetries) {
+        const waitMs = delayMs * (attempt + 1) + Math.random() * 500;
+        await new Promise((resolve) => setTimeout(resolve, waitMs));
+      }
+    }
+  }
+
+  throw new AuthError(
+    'network_error',
+    `${operationName} 失败，已重试 ${maxRetries} 次: ${lastError?.message ?? '未知错误'}`,
+  );
+}
+
 export async function login(userInfo?: { nickname?: string; avatarUrl?: string }): Promise<AuthUser> {
-  const { code } = await miniProgramLogin();
-  const { token, user } = await wechatLogin(code, userInfo);
+  const { code } = await withRetry(() => miniProgramLogin(), {
+    operationName: '获取微信登录凭证',
+    maxRetries: 2,
+    delayMs: 800,
+  });
+
+  if (!code || code.length < 10) {
+    throw new AuthError('invalid_code', '微信登录凭证无效，请重新尝试');
+  }
+
+  const { token, user } = await withRetry(() => wechatLogin(code, userInfo), {
+    operationName: '服务器登录',
+    maxRetries: 2,
+    delayMs: 1200,
+  });
+
+  if (!token || !user) {
+    throw new AuthError('server_error', '服务器响应异常，请稍后重试');
+  }
+
   setToken(token);
   setStoredUser(user);
 
-  // 首次登录后同步本地收藏队列
   const pending = getPendingFavorites();
   if (pending.length > 0) {
     try {
@@ -38,4 +109,19 @@ export async function login(userInfo?: { nickname?: string; avatarUrl?: string }
 export function logout(): void {
   clearToken();
   clearStoredUser();
+}
+
+export async function silentLogin(): Promise<AuthUser | null> {
+  if (isLoggedIn()) {
+    const valid = await validateSession();
+    if (valid) {
+      return getStoredUser();
+    }
+  }
+
+  try {
+    return await login();
+  } catch {
+    return null;
+  }
 }

@@ -4,6 +4,8 @@ import { useDidShow } from '@tarojs/taro';
 import { toBeanFavoriteSnapshot, toRoasterFavoriteSnapshot } from '@coffee-atlas/domain';
 
 import Icon from '../../components/Icon';
+import BadgeCard, { type BadgeCardData } from '../../components/BadgeCard';
+import BadgeDetailModal, { type BadgeDetailData } from '../../components/BadgeDetailModal';
 import {
   getBadgeProgress,
   getFavorites as getCloudFavorites,
@@ -196,6 +198,32 @@ function FavoriteEmptyPane({ message }: { message: string }) {
       <Text className="profile__empty-text">{message}</Text>
     </View>
   );
+}
+
+function toBadgeCardData(badge: ProfileBadgeProgress, index: number): BadgeCardData {
+  return {
+    id: badge.id,
+    title: badge.title,
+    subtitle: badge.subtitle,
+    unlocked: badge.unlocked,
+    currentValue: badge.currentValue,
+    targetValue: badge.targetValue,
+    progressLabel: badge.progressLabel,
+    detail: badge.detail,
+    index,
+  };
+}
+
+function toBadgeDetailData(badge: ProfileBadgeProgress): BadgeDetailData {
+  return {
+    id: badge.id,
+    title: badge.title,
+    subtitle: badge.subtitle,
+    unlocked: badge.unlocked,
+    currentValue: badge.currentValue,
+    targetValue: badge.targetValue,
+    detail: badge.detail,
+  };
 }
 
 export default function Profile() {
@@ -431,7 +459,7 @@ export default function Profile() {
     };
   }, [loggedIn, serverBadgeSignature, unlockedBadgeSignature]);
 
-  const handleOpenBadge = (badge: ProfileBadgeProgress) => {
+  const handleOpenBadge = (badge: BadgeCardData) => {
     setSelectedBadgeId(badge.id);
   };
 
@@ -445,6 +473,8 @@ export default function Profile() {
       setUnlockQueue((current) => current.slice(1));
     }
   };
+
+  const selectedBadgeDetail = selectedBadge ? toBadgeDetailData(selectedBadge) : null;
 
   return (
     <View className="profile">
@@ -506,13 +536,6 @@ export default function Profile() {
 
         <Text className="profile__badge-record-description">{badgeRecordCopy.description}</Text>
 
-        <View className="profile__badge-record-ledger">
-          <Text className="profile__badge-record-ledger-label">Collection Cabinet</Text>
-          <Text className="profile__badge-record-ledger-value">
-            {nextBadge ? `下一枚展签：${nextBadge.title}` : '当前馆藏已完整点亮'}
-          </Text>
-        </View>
-
         <View className="profile__badge-groups">
           {groupedBadges.map((group) => (
             <View key={group.id} className="profile__badge-group">
@@ -524,41 +547,15 @@ export default function Profile() {
               <View className="profile__badge-record-grid">
                 {group.badges.map((badge) => {
                   const badgeIndex = badges.findIndex((item) => item.id === badge.id);
+                  const cardData = toBadgeCardData(badge, badgeIndex);
 
                   return (
-                    <View
+                    <BadgeCard
                       key={badge.id}
-                      className={`profile__badge-card ${badge.unlocked ? 'profile__badge-card--unlocked' : 'profile__badge-card--locked'}`}
-                      onClick={() => handleOpenBadge(badge)}
-                    >
-                      <View className="profile__badge-card-top">
-                        <Text className="profile__badge-card-index">{String(badgeIndex + 1).padStart(2, '0')}</Text>
-                        <Text className={`profile__badge-card-status ${badge.unlocked ? 'profile__badge-card-status--unlocked' : ''}`}>
-                          {badge.unlocked ? '已入藏' : badge.progressLabel}
-                        </Text>
-                      </View>
-
-                      <View className="profile__badge-card-frame">
-                        <View className="profile__badge-card-ring">
-                          <Icon
-                            name={badge.icon}
-                            size={20}
-                            color={badge.unlocked ? '#ffffff' : 'rgba(107, 83, 68, 0.62)'}
-                          />
-                        </View>
-                        <Text className="profile__badge-card-plate">{badge.unlocked ? 'ARCHIVED' : 'PENDING'}</Text>
-                      </View>
-
-                      <View className="profile__badge-card-copy">
-                        <Text className="profile__badge-card-title">{badge.title}</Text>
-                        <Text className="profile__badge-card-subtitle">{badge.subtitle}</Text>
-                      </View>
-
-                      <View className="profile__badge-card-footer">
-                        <Text className="profile__badge-card-rule">{badge.unlocked ? '馆藏说明' : '解锁条件'}</Text>
-                        <Text className="profile__badge-card-detail">{badge.unlocked ? '点击查看徽章说明' : badge.detail}</Text>
-                      </View>
-                    </View>
+                      badge={cardData}
+                      onOpen={handleOpenBadge}
+                      animationDelay={badgeIndex * 0.03}
+                    />
                   );
                 })}
               </View>
@@ -569,66 +566,7 @@ export default function Profile() {
         <Text className="profile__badge-record-hint">{badgeRecordCopy.hint}</Text>
       </View>
 
-      {selectedBadge ? (
-        <View className="profile__badge-modal-mask" onClick={handleCloseBadge}>
-          <View
-            className="profile__badge-modal"
-            onClick={(event) => {
-              event.stopPropagation();
-            }}
-          >
-            <View className="profile__badge-modal-handle" />
-
-            <View className="profile__badge-modal-meta">
-              <Text className="profile__badge-modal-eyebrow">
-                {isUnlockCelebration ? 'NEW BADGE UNLOCKED' : 'BADGE ARCHIVE'}
-              </Text>
-              <Text className="profile__badge-modal-code">{selectedBadge.id.toUpperCase()}</Text>
-            </View>
-
-            <View className="profile__badge-modal-header">
-              <View className={`profile__badge-modal-icon ${selectedBadge.unlocked ? 'profile__badge-modal-icon--unlocked' : ''}`}>
-                <Icon
-                  name={selectedBadge.icon}
-                  size={24}
-                  color={selectedBadge.unlocked ? '#ffffff' : 'rgba(78, 52, 46, 0.78)'}
-                />
-              </View>
-              <Text className={`profile__badge-modal-status ${selectedBadge.unlocked ? 'profile__badge-modal-status--unlocked' : ''}`}>
-                {selectedBadge.unlocked ? '已解锁' : '未解锁'}
-              </Text>
-            </View>
-
-            {isUnlockCelebration ? (
-              <Text className="profile__badge-modal-unlock-title">恭喜解锁新徽章！</Text>
-            ) : null}
-            <Text className="profile__badge-modal-title">{selectedBadge.title}</Text>
-            <Text className="profile__badge-modal-subtitle">{selectedBadge.subtitle}</Text>
-            <Text className="profile__badge-modal-description">{selectedBadge.detail}</Text>
-
-            <View className="profile__badge-modal-progress">
-              <View className="profile__badge-modal-progress-block">
-                <Text className="profile__badge-modal-progress-label">当前进度</Text>
-                <Text className="profile__badge-modal-progress-value">
-                  {selectedBadge.unlocked
-                    ? '已完成'
-                    : `${Math.min(selectedBadge.currentValue, selectedBadge.targetValue)}/${selectedBadge.targetValue}`}
-                </Text>
-              </View>
-              <View className="profile__badge-modal-progress-block">
-                <Text className="profile__badge-modal-progress-label">解锁门槛</Text>
-                <Text className="profile__badge-modal-progress-value">{selectedBadge.targetValue}</Text>
-              </View>
-            </View>
-
-            <View className="profile__badge-modal-actions">
-              <View className="profile__badge-modal-close" onClick={handleCloseBadge}>
-                <Text className="profile__badge-modal-close-text">知道了</Text>
-              </View>
-            </View>
-          </View>
-        </View>
-      ) : null}
+      <BadgeDetailModal badge={selectedBadgeDetail} isCelebration={isUnlockCelebration} onClose={handleCloseBadge} />
 
       <View className="profile__tabs">
         {([

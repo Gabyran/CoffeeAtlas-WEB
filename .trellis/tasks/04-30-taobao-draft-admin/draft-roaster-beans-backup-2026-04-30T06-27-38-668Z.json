@@ -1,0 +1,7 @@
+{
+  "mode": "dry-run",
+  "selector": "status=DRAFT",
+  "selectedAt": "2026-04-30T06:27:38.668Z",
+  "count": 0,
+  "rows": []
+}

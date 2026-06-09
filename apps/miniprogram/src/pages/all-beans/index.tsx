@@ -181,9 +181,8 @@ export default function AllBeans() {
       selectedProcessStyle,
       selectedContinent,
       selectedCountry,
-      selectedVariety,
     });
-  }, [selectedContinent, selectedCountry, selectedProcessBase, selectedProcessStyle, selectedVariety]);
+  }, [selectedContinent, selectedCountry, selectedProcessBase, selectedProcessStyle]);
 
   const visibleGuidedProcessStyleChoices = useMemo(() => {
     if (!discoverPayload || discoverPayload.processStyleOptions.length === 0) return [];
@@ -635,68 +634,6 @@ export default function AllBeans() {
                   ) : (
                     <Text className="guided-discover-card__hint">
                       {LIGHT_QUESTION_COPY.miniprogram.guidedCard.ui.loadingContinent}
-                    </Text>
-                  )
-                ) : null}
-
-                {guidedDiscoverStep.step === 'country' ? (
-                  discoverPayload ? (
-                    discoverPayload.countryOptions.length > 0 ? (
-                      <View className="guided-discover-card__choices">
-                        {discoverPayload.countryOptions.map((option) => (
-                          <View
-                            key={option.id}
-                            className="guided-discover-card__choice"
-                            onClick={() => handleCountrySelect(option.label)}
-                          >
-                            <Text className="guided-discover-card__choice-title">{option.label}</Text>
-                            <Text className="guided-discover-card__choice-description">{`${option.count} 款可选豆子`}</Text>
-                          </View>
-                        ))}
-                      </View>
-                    ) : (
-                      <Text className="guided-discover-card__hint">
-                        {LIGHT_QUESTION_COPY.miniprogram.guidedCard.ui.noCountryOptions}
-                      </Text>
-                    )
-                  ) : (
-                    <Text className="guided-discover-card__hint">
-                      {LIGHT_QUESTION_COPY.miniprogram.guidedCard.ui.loadingCountry}
-                    </Text>
-                  )
-                ) : null}
-
-                {guidedDiscoverStep.step === 'variety' ? (
-                  discoverPayload ? (
-                    discoverPayload.varietyOptions.length > 0 ? (
-                      <>
-                        <View className="guided-discover-card__choices">
-                          {discoverPayload.varietyOptions.slice(0, 6).map((option) => (
-                            <View
-                              key={option.id}
-                              className="guided-discover-card__choice"
-                              onClick={() => handleVarietySelect(option.label)}
-                            >
-                              <Text className="guided-discover-card__choice-title">{option.label}</Text>
-                              <Text className="guided-discover-card__choice-description">{`${option.count} 款可选豆子`}</Text>
-                            </View>
-                          ))}
-                        </View>
-                        <Text
-                          className="guided-discover-card__restart"
-                          onClick={() => setSelectedVariety(ALL_DISCOVER_VALUE)}
-                        >
-                          {LIGHT_QUESTION_COPY.miniprogram.guidedCard.ui.skipVariety}
-                        </Text>
-                      </>
-                    ) : (
-                      <Text className="guided-discover-card__hint">
-                        {LIGHT_QUESTION_COPY.miniprogram.guidedCard.ui.noVarietyOptions}
-                      </Text>
-                    )
-                  ) : (
-                    <Text className="guided-discover-card__hint">
-                      {LIGHT_QUESTION_COPY.miniprogram.guidedCard.ui.loadingVariety}
                     </Text>
                   )
                 ) : null}

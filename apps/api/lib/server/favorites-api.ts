@@ -2,6 +2,7 @@ import type { UserFavorite } from '@coffee-atlas/shared-types';
 
 import { getCatalogBeansByIds, getRoastersByIds } from '@/lib/catalog';
 import { requireSupabaseServiceRoleServer } from '@/lib/supabase';
+import { buildAppUserUpsertRow } from './app-user-upsert.ts';
 import { mapBeanCard } from './public-beans.ts';
 import { mapRoasterSummary } from './public-api.ts';
 
@@ -66,16 +67,7 @@ export async function upsertAppUser(params: {
   const db = requireSupabaseServiceRoleServer();
   const { data, error } = await db
     .from('app_users')
-    .upsert(
-      {
-        wechat_openid: params.openid,
-        wechat_unionid: params.unionid ?? null,
-        nickname: params.nickname ?? null,
-        avatar_url: params.avatarUrl ?? null,
-        last_login_at: new Date().toISOString(),
-      },
-      { onConflict: 'wechat_openid' }
-    )
+    .upsert(buildAppUserUpsertRow(params), { onConflict: 'wechat_openid' })
     .select()
     .single();
 

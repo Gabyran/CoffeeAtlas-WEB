@@ -1,0 +1,88 @@
+{
+  "mode": "dry-run",
+  "selector": "known-non-bean-targets",
+  "selectedAt": "2026-04-30T06:27:10.155Z",
+  "count": 4,
+  "rows": [
+    {
+      "id": "196a83eb-abfb-4195-b2b3-451fc7586104",
+      "roaster_id": "1309abcc-3b03-4a10-98f5-739880345765",
+      "bean_id": "d0b34415-7d35-49dd-8f11-ce8b7a40c6d8",
+      "source_id": "97b15efe-1b82-4fe6-8149-abb2617bdc9c",
+      "display_name": "河川水流 独立设计定制款冷饮水杯 冰美式咖啡杯 340ml",
+      "status": "ARCHIVED",
+      "price_amount": 18.19,
+      "product_url": "https://item.taobao.com/item.htm?id=819854523818&skuId=5695634251088",
+      "source_item_id": "819854523818",
+      "source_sku_id": "5695634251088",
+      "created_at": "2026-04-29T12:43:51.771835+00:00",
+      "updated_at": "2026-04-30T02:55:01.971469+00:00",
+      "roasters": {
+        "name": "河川水流"
+      },
+      "beans": {
+        "canonical_name": "河川水流 独立设计定制款冷饮水杯 冰美式 杯"
+      }
+    },
+    {
+      "id": "08603b77-3a5b-44f4-ae67-ac3c3f425b38",
+      "roaster_id": "1309abcc-3b03-4a10-98f5-739880345765",
+      "bean_id": "2130e7ca-c002-4179-a3ae-9cbbcc971c5a",
+      "source_id": "97b15efe-1b82-4fe6-8149-abb2617bdc9c",
+      "display_name": "河川水流 便携精品挂耳咖啡滴滤手冲 黄金温泉/划水10gx6氮气保鲜",
+      "status": "ARCHIVED",
+      "price_amount": 30.45,
+      "product_url": "https://item.taobao.com/item.htm?id=970510729490",
+      "source_item_id": "970510729490",
+      "source_sku_id": null,
+      "created_at": "2026-03-27T03:16:29.44565+00:00",
+      "updated_at": "2026-04-30T02:55:01.971469+00:00",
+      "roasters": {
+        "name": "河川水流"
+      },
+      "beans": {
+        "canonical_name": "河川水流 便携精品 滴滤 黄金温泉 划水10gx6氮气保鲜"
+      }
+    },
+    {
+      "id": "491367bc-a05e-40da-9faa-9ecfd451bb66",
+      "roaster_id": "ab9a44e2-ca2f-4e95-baa1-34251019b04f",
+      "bean_id": "c6aa51f7-43d6-4eb9-827d-316f5e39a42e",
+      "source_id": "ba0f73fa-57ce-4f00-8272-dc1413f205ae",
+      "display_name": "【Terraform】随心随行 氮气保鲜便携多种口味挂耳式精品手冲咖啡",
+      "status": "ARCHIVED",
+      "price_amount": null,
+      "product_url": null,
+      "source_item_id": "listing:terraform随心随行氮气保鲜便携多种口味挂耳式精品手冲咖啡",
+      "source_sku_id": null,
+      "created_at": "2026-03-26T14:12:44.048483+00:00",
+      "updated_at": "2026-04-30T02:55:01.971469+00:00",
+      "roasters": {
+        "name": "启程拓殖"
+      },
+      "beans": {
+        "canonical_name": "随心随行 氮气保鲜便携多种口味 式精品"
+      }
+    },
+    {
+      "id": "8d707641-7a65-46ab-b417-02c7143aae99",
+      "roaster_id": "2eb1f30e-d234-4f64-9e9f-c8493824378d",
+      "bean_id": "3a69669e-0be9-4d59-91fc-c8f4712e6b2c",
+      "source_id": "c2db5a45-c1bf-4d1c-980a-975abac85a80",
+      "display_name": "【白鲸咖啡】 精品风味挂耳系列 手冲便携挂耳包 10gx12",
+      "status": "ARCHIVED",
+      "price_amount": null,
+      "product_url": null,
+      "source_item_id": "listing:白鲸咖啡精品风味挂耳系列手冲便携挂耳包10gx12",
+      "source_sku_id": null,
+      "created_at": "2026-03-26T15:10:33.59365+00:00",
+      "updated_at": "2026-04-30T02:55:01.971469+00:00",
+      "roasters": {
+        "name": "白鲸咖啡"
+      },
+      "beans": {
+        "canonical_name": "精品风味 系列 便携 包 10gx12"
+      }
+    }
+  ]
+}

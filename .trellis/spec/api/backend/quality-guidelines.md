@@ -80,3 +80,119 @@ pnpm --filter @coffeeatlas/api sync:taobao:shop -- --roaster-name <roaster-name>
 ```
 
 只在确认桌面端已登录且适合手测时再跑，不要把 live run 当成每次都必须的默认步骤。
+
+## Scenario: API-hosted Admin Pages
+
+### 1. Scope / Trigger
+
+- Trigger: 新增或修改 `apps/api/app/admin/**`、`apps/api/app/api/admin/**`、`apps/api/lib/server/admin-*.ts`。
+- Admin 页面属于 API 应用的运维后台，不属于小程序前端。
+
+### 2. Signatures
+
+- Page route: `GET /admin/<tool>`
+- Admin API route: `/api/admin/<resource>`
+- Auth helper: `requireAdmin(request: NextRequest)`
+- DB helper: admin 读写默认使用 `requireSupabaseServiceRoleServer()`
+
+### 3. Contracts
+
+- Env: `ADMIN_API_TOKEN` 必须配置，否则 admin API 返回 `admin_auth_disabled`。
+- Request auth: `Authorization: Bearer <ADMIN_API_TOKEN>`。
+- Response shape: 当前 admin API 沿用 legacy JSON，成功为 `{ ok: true, data? }`，失败走 `toLegacyError()`。
+- DB: 管理端写操作必须是真实 Supabase 写入，不允许 sample fallback。
+
+### 4. Validation & Error Matrix
+
+- Missing `ADMIN_API_TOKEN` -> `403 admin_auth_disabled`
+- Missing or wrong bearer token -> `403 admin_forbidden`
+- Invalid JSON body -> `400 invalid_payload`
+- Invalid status enum -> `400 invalid_status`
+- Missing target row -> `404 not_found`
+- Missing service role env -> `500 supabase_service_role_missing`
+
+### 5. Good/Base/Bad Cases
+
+- Good: `/admin/roaster-beans` 只负责交互，所有写操作调用 `/api/admin/roaster-beans/*`。
+- Base: 管理页可在本地输入 token，token 不写入仓库。
+- Bad: 在 route handler 里直接拼复杂 Supabase 查询，或用 anon key/sample data 假装管理写入成功。
+
+### 6. Tests Required
+
+- `pnpm --filter @coffeeatlas/api test` 至少覆盖 `requireAdmin()` 的 disabled/forbidden/success 分支。
+- `pnpm --filter @coffeeatlas/api typecheck`
+- `pnpm --filter @coffeeatlas/api lint`
+- 改 admin 页面或 Next config 后，补 `pnpm --filter @coffee-atlas/shared-types build && pnpm --filter @coffeeatlas/api build`。
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```ts
+return toLegacyError({ status: 400, code: 'invalid_payload', message: 'Bad body' });
+```
+
+#### Correct
+
+```ts
+badRequest('Request body must be a JSON object', 'invalid_payload');
+```
+
+## Scenario: Next 16 API Build With Workspace Shared Types
+
+### 1. Scope / Trigger
+
+- Trigger: `apps/api` imports `@coffee-atlas/shared-types` and runs `next build` with Turbopack.
+- Next 16 uses Turbopack by default, and Turbopack follows `tsconfig` path aliases unless overridden.
+
+### 2. Signatures
+
+- Required prebuild: `pnpm --filter @coffee-atlas/shared-types build`
+- API build: `pnpm --filter @coffeeatlas/api build`
+- Config location: `apps/api/next.config.ts`
+
+### 3. Contracts
+
+- `@coffee-atlas/shared-types` package exports compiled `dist/index.js`.
+- `apps/api/next.config.ts` must alias `@coffee-atlas/shared-types` to `../../packages/shared-types/dist/index.js` for Turbopack builds.
+- Do not point the alias to an absolute filesystem path; Turbopack can misread it as a server-relative import.
+
+### 4. Validation & Error Matrix
+
+- Shared types not built -> module resolution may fail at build time.
+- Alias points to `packages/shared-types/src/index.ts` -> Turbopack cannot resolve `.js` re-exports from TS source.
+- Alias is absolute path -> `server relative imports are not implemented yet`.
+
+### 5. Good/Base/Bad Cases
+
+- Good: root `pnpm build` uses Turbo `^build`, so shared-types builds before API.
+- Base: isolated API build should explicitly run shared-types build first.
+- Bad: changing shared-types source exports just to satisfy Next while breaking package ESM output.
+
+### 6. Tests Required
+
+- `pnpm --filter @coffee-atlas/shared-types build`
+- `pnpm --filter @coffeeatlas/api build`
+- Keep `pnpm --filter @coffeeatlas/api typecheck` passing after config changes.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```ts
+turbopack: {
+  resolveAlias: {
+    '@coffee-atlas/shared-types': '/Users/gabi/CoffeeAtlas-Web/packages/shared-types/dist/index.js',
+  },
+}
+```
+
+#### Correct
+
+```ts
+turbopack: {
+  resolveAlias: {
+    '@coffee-atlas/shared-types': '../../packages/shared-types/dist/index.js',
+  },
+}
+```

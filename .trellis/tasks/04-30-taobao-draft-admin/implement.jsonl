@@ -1,0 +1,6 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/api/backend/error-handling.md", "reason": "Admin API route error handling"}
+{"file": ".trellis/spec/api/backend/type-safety.md", "reason": "Admin DTO and row typing"}
+{"file": ".trellis/spec/api/backend/quality-guidelines.md", "reason": "Backend validation commands"}
+{"file": ".trellis/spec/api/backend/database-guidelines.md", "reason": "Admin roaster_beans queries and production delete"}

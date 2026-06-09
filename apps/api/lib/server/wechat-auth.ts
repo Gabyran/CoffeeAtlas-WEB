@@ -1,8 +1,8 @@
-import { HttpError } from './api-primitives';
+import { HttpError } from './api-primitives.ts';
 
 interface Code2SessionResponse {
-  openid: string;
-  session_key: string;
+  openid?: string;
+  session_key?: string;
   unionid?: string;
   errcode?: number;
   errmsg?: string;
@@ -19,7 +19,11 @@ function getWechatConfig() {
 
 export async function code2Session(code: string): Promise<{ openid: string; unionid?: string }> {
   const { appId, appSecret } = getWechatConfig();
-  const url = `https://api.weixin.qq.com/sns/jscode2session?appid=${appId}&secret=${appSecret}&js_code=${encodeURIComponent(code)}&grant_type=authorization_code`;
+  const url = new URL('https://api.weixin.qq.com/sns/jscode2session');
+  url.searchParams.set('appid', appId);
+  url.searchParams.set('secret', appSecret);
+  url.searchParams.set('js_code', code);
+  url.searchParams.set('grant_type', 'authorization_code');
 
   const res = await fetch(url);
   if (!res.ok) {
@@ -31,5 +35,11 @@ export async function code2Session(code: string): Promise<{ openid: string; unio
     throw new HttpError(401, 'wechat_login_failed', json.errmsg ?? 'WeChat login failed');
   }
 
-  return { openid: json.openid, unionid: json.unionid };
+  const openid = typeof json.openid === 'string' ? json.openid.trim() : '';
+  if (!openid) {
+    throw new HttpError(502, 'wechat_api_error', 'WeChat login response missing openid');
+  }
+  const unionid = typeof json.unionid === 'string' && json.unionid.trim() ? json.unionid.trim() : undefined;
+
+  return { openid, unionid };
 }

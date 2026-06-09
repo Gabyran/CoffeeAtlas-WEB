@@ -3,7 +3,6 @@ import { Text, View } from '@tarojs/components';
 
 import { getBeanDiscover } from '../../services/api';
 import type { BeanDiscoverPayload, DiscoverContinentId, ProcessBaseId, ProcessStyleId } from '../../types';
-import { ORIGIN_ATLAS_COUNTRY_MAP } from '../../utils/origin-atlas';
 import { reLaunch, showToast } from '../../utils/miniprogram-api.ts';
 import { setAllBeansEntryIntent } from '../all-beans/entry-intent';
 import {
@@ -280,21 +279,6 @@ export default class OnboardingGuided extends Component<Record<string, never>, O
     });
   };
 
-  private handleCountrySelect = (value: string): void => {
-    const atlasCountry = ORIGIN_ATLAS_COUNTRY_MAP.get(value) ?? null;
-    this.setState({
-      selectedContinent: atlasCountry ? atlasCountry.continentId : this.state.selectedContinent,
-      selectedCountry: value,
-      selectedVariety: ALL_DISCOVER_VALUE,
-    });
-  };
-
-  private handleVarietySelect = (value: string): void => {
-    this.setState({
-      selectedVariety: value,
-    });
-  };
-
   private handleRestart = (): void => {
     this.setState({
       selectedProcessBase: ALL_DISCOVER_VALUE,
@@ -319,9 +303,8 @@ export default class OnboardingGuided extends Component<Record<string, never>, O
       selectedProcessStyle,
       selectedContinent,
       selectedCountry,
-      selectedVariety,
     });
-    const canFinish = guidedDiscoverStep.step === 'done' || guidedDiscoverStep.step === 'variety';
+    const canFinish = guidedDiscoverStep.step === 'done';
 
     if (!canFinish) return;
 
@@ -342,7 +325,6 @@ export default class OnboardingGuided extends Component<Record<string, never>, O
       selectedProcessStyle,
       selectedContinent,
       selectedCountry,
-      selectedVariety,
       discoverPayload,
       discoverError,
     } = this.state;
@@ -352,7 +334,6 @@ export default class OnboardingGuided extends Component<Record<string, never>, O
       selectedProcessStyle,
       selectedContinent,
       selectedCountry,
-      selectedVariety,
     });
 
     const visibleGuidedProcessStyleChoices =
@@ -362,7 +343,7 @@ export default class OnboardingGuided extends Component<Record<string, never>, O
             Boolean(resolveGuidedProcessStyleSelection(choice.id, discoverPayload.processStyleOptions))
           );
 
-    const canFinish = guidedDiscoverStep.step === 'done' || guidedDiscoverStep.step === 'variety';
+    const canFinish = guidedDiscoverStep.step === 'done';
 
     return (
       <View className="onboarding-guided">
@@ -438,63 +419,6 @@ export default class OnboardingGuided extends Component<Record<string, never>, O
                 </View>
               ) : (
                 <Text className="onboarding-guided__hint">正在准备大洲选项...</Text>
-              )
-            ) : null}
-
-            {guidedDiscoverStep.step === 'country' ? (
-              discoverPayload ? (
-                discoverPayload.countryOptions.length > 0 ? (
-                  <View className="onboarding-guided__choices">
-                    {discoverPayload.countryOptions.map((option) => (
-                      <View
-                        key={option.id}
-                        className="onboarding-guided__choice"
-                        hoverClass="onboarding-guided__choice--active"
-                        hoverStartTime={20}
-                        hoverStayTime={70}
-                        onClick={() => this.handleCountrySelect(option.label)}
-                      >
-                        <Text className="onboarding-guided__choice-title">{option.label}</Text>
-                        <Text className="onboarding-guided__choice-description">{`${option.count} 款可选豆子`}</Text>
-                      </View>
-                    ))}
-                  </View>
-                ) : (
-                  <Text className="onboarding-guided__hint">这个大洲下暂时没有可继续缩小的国家结果，可以直接往下浏览当前结果。</Text>
-                )
-              ) : (
-                <Text className="onboarding-guided__hint">正在准备国家选项...</Text>
-              )
-            ) : null}
-
-            {guidedDiscoverStep.step === 'variety' ? (
-              discoverPayload ? (
-                discoverPayload.varietyOptions.length > 0 ? (
-                  <>
-                    <View className="onboarding-guided__choices">
-                      {discoverPayload.varietyOptions.slice(0, 6).map((option) => (
-                        <View
-                          key={option.id}
-                          className="onboarding-guided__choice"
-                          hoverClass="onboarding-guided__choice--active"
-                          hoverStartTime={20}
-                          hoverStayTime={70}
-                          onClick={() => this.handleVarietySelect(option.label)}
-                        >
-                          <Text className="onboarding-guided__choice-title">{option.label}</Text>
-                          <Text className="onboarding-guided__choice-description">{`${option.count} 款可选豆子`}</Text>
-                        </View>
-                      ))}
-                    </View>
-                    <Text className="onboarding-guided__secondary" onClick={this.handleConfirm}>
-                      跳过
-                    </Text>
-                  </>
-                ) : (
-                  <Text className="onboarding-guided__hint">当前路径下暂时没有可继续细分的豆种，可以直接查看结果。</Text>
-                )
-              ) : (
-                <Text className="onboarding-guided__hint">正在准备豆种选项...</Text>
               )
             ) : null}
 
