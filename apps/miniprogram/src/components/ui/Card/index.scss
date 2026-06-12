@@ -3,8 +3,8 @@
   flex-direction: column;
   background: var(--color-card-bg, #fff);
   border-radius: var(--radius-xl, 20px);
-  transition: transform var(--duration-normal, 200ms) var(--smooth-easing),
-    box-shadow var(--duration-normal, 200ms) var(--smooth-easing);
+  transition: transform 200ms ease,
+    box-shadow 200ms ease;
 
   &--default {
     border: 1px solid rgba(107, 83, 68, 0.08);

@@ -5,7 +5,7 @@
   gap: var(--space-2, 8px);
   font-weight: 600;
   border-radius: var(--radius-md, 12px);
-  transition: all var(--duration-normal, 200ms) var(--smooth-easing);
+  transition: all 200ms ease;
   cursor: pointer;
   user-select: none;
 

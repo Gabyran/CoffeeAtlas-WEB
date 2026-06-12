@@ -3,7 +3,7 @@
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-pill, 999px);
-  transition: all var(--duration-fast, 150ms) var(--smooth-easing);
+  transition: all 150ms ease;
 
   &--sm {
     padding: var(--space-1, 4px) var(--space-2, 8px);

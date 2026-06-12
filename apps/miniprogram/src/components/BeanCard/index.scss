@@ -7,11 +7,11 @@
   border: 1px solid rgba(107, 83, 68, 0.08);
   border-radius: var(--radius-2xl, 24px);
   box-shadow: var(--shadow-md);
-  animation: fade-in-up 0.4s var(--smooth-easing) forwards;
+  animation: fade-in-up 0.4s ease forwards;
   opacity: 0;
-  transition: transform var(--duration-normal, 200ms) var(--smooth-easing),
-    box-shadow var(--duration-normal, 200ms) var(--smooth-easing),
-    opacity var(--duration-normal, 200ms) var(--smooth-easing);
+  transition: transform 200ms ease,
+    box-shadow 200ms ease,
+    opacity 200ms ease;
 
   &__media {
     position: relative;
