@@ -1,3 +1,5 @@
+import { getBadgeUnlockDate, setBadgeUnlockDate, formatUnlockDate } from '../../utils/storage';
+
 type ProfileBadgeIconName = 'coffee' | 'user' | 'globe' | 'map-pin' | 'heart' | 'heart-filled' | 'share';
 type BadgeMetricKey =
   | 'loggedIn'
@@ -44,6 +46,7 @@ export interface ProfileBadgeProgress extends ProfileBadgeDefinition {
   remainingValue: number;
   progressLabel: string;
   detail: string;
+  unlockedAt?: string;
 }
 
 const PROFILE_BADGE_DEFINITIONS: ProfileBadgeDefinition[] = [
@@ -207,7 +210,7 @@ function getMetricValue(metrics: BadgeMetricSnapshot, key: BadgeMetricKey): numb
 function getLockedDetail(definition: ProfileBadgeDefinition, remainingValue: number): string {
   switch (definition.metricKey) {
     case 'loggedIn':
-      return '登录后即可解锁这枚徽章。';
+      return '登录后即可解锁这个成就。';
     case 'beanFavorites':
       return `再收藏 ${remainingValue} 款豆子可解锁。`;
     case 'roasterFavorites':
@@ -250,6 +253,15 @@ export function getProfileBadges(metrics: BadgeMetricSnapshot): ProfileBadgeProg
     const unlocked = currentValue >= targetValue || externallyUnlockedBadgeIds.has(definition.id);
     const remainingValue = unlocked ? 0 : targetValue - currentValue;
 
+    let unlockedAt: string | undefined;
+    if (unlocked) {
+      unlockedAt = getBadgeUnlockDate(definition.id);
+      if (!unlockedAt) {
+        unlockedAt = formatUnlockDate(Date.now());
+        setBadgeUnlockDate(definition.id, unlockedAt);
+      }
+    }
+
     return {
       ...definition,
       unlocked,
@@ -258,6 +270,7 @@ export function getProfileBadges(metrics: BadgeMetricSnapshot): ProfileBadgeProg
       remainingValue,
       progressLabel: getProgressLabel(unlocked, currentValue, targetValue),
       detail: unlocked ? definition.unlockedDescription : getLockedDetail(definition, remainingValue),
+      unlockedAt,
     };
   });
 }

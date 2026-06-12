@@ -45,7 +45,7 @@ export default function BadgeDetailModal({ badge, isCelebration, onClose }: Badg
         ) : null}
 
         <View className="badge-modal__meta">
-          <Text className="badge-modal__eyebrow">{isCelebration ? 'NEW BADGE UNLOCKED' : 'BADGE ARCHIVE'}</Text>
+          <Text className="badge-modal__eyebrow">{isCelebration ? 'NEW ACHIEVEMENT' : 'ACHIEVEMENT DETAIL'}</Text>
           <Text className="badge-modal__code">{badge.id.toUpperCase()}</Text>
         </View>
 
@@ -68,7 +68,7 @@ export default function BadgeDetailModal({ badge, isCelebration, onClose }: Badg
           </Badge>
         </View>
 
-        {isCelebration ? <Text className="badge-modal__celebration-title">恭喜解锁新徽章！</Text> : null}
+        {isCelebration ? <Text className="badge-modal__celebration-title">恭喜解锁新成就！</Text> : null}
 
         <Text className="badge-modal__title">{badge.title}</Text>
         <Text className="badge-modal__subtitle">{badge.subtitle}</Text>

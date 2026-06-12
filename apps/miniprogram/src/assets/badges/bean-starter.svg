@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="50" y1="20" x2="150" y2="180" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F7F4E3"/><stop offset="1" stop-color="#E6D6BF"/>
+    </linearGradient>
+    <linearGradient id="bean" x1="85" y1="60" x2="115" y2="130" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#A97253"/><stop offset="1" stop-color="#8F583A"/>
+    </linearGradient>
+    <linearGradient id="hand" x1="60" y1="100" x2="140" y2="155" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#D6C9AE"/><stop offset="1" stop-color="#A5936B"/>
+    </linearGradient>
+  </defs>
+  <circle cx="100" cy="100" r="96" fill="url(#bg)" stroke="#5E4730" stroke-width="1.2"/>
+  <circle cx="100" cy="100" r="88" fill="none" stroke="#D6C9AE" stroke-width=".5"/>
+  <!-- two cupped hands -->
+  <path d="M55 120 Q55 100 70 95 Q80 92 85 100 L85 110 Q85 118 78 120Z" fill="url(#hand)" stroke="#5E4730" stroke-width=".7" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M145 120 Q145 100 130 95 Q120 92 115 100 L115 110 Q115 118 122 120Z" fill="url(#hand)" stroke="#5E4730" stroke-width=".7" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- palm base connecting hands -->
+  <path d="M78 120 Q85 135 100 138 Q115 135 122 120" fill="url(#hand)" stroke="#5E4730" stroke-width=".7" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- fingers detail left -->
+  <path d="M62 108 Q58 104 60 98" stroke="#5E4730" stroke-width=".35" stroke-linecap="round"/>
+  <path d="M68 104 Q65 99 67 95" stroke="#5E4730" stroke-width=".35" stroke-linecap="round"/>
+  <!-- fingers detail right -->
+  <path d="M138 108 Q142 104 140 98" stroke="#5E4730" stroke-width=".35" stroke-linecap="round"/>
+  <path d="M132 104 Q135 99 133 95" stroke="#5E4730" stroke-width=".35" stroke-linecap="round"/>
+  <!-- the single precious bean -->
+  <ellipse cx="100" cy="95" rx="14" ry="20" transform="rotate(-8 100 95)" fill="url(#bean)" stroke="#5E4730" stroke-width=".8"/>
+  <!-- bean center crease -->
+  <path d="M97 78 Q100 95 97 112" stroke="#603822" stroke-width=".9" stroke-linecap="round"/>
+  <!-- subtle shine on bean -->
+  <path d="M105 82 Q108 90 106 98" stroke="#C8A882" stroke-width=".5" stroke-linecap="round" opacity=".6"/>
+  <!-- sparkle/treasure indicators -->
+  <path d="M78 70 L80 66 L82 70 L86 72 L82 74 L80 78 L78 74 L74 72Z" fill="#A5936B" opacity=".5"/>
+  <path d="M120 64 L121 61 L122 64 L125 65 L122 66 L121 69 L120 66 L117 65Z" fill="#A5936B" opacity=".4"/>
+  <path d="M130 80 L131 77 L132 80 L135 81 L132 82 L131 85 L130 82 L127 81Z" fill="#A5936B" opacity=".35"/>
+  <!-- ring decorations -->
+  <circle cx="100" cy="8" r="2.5" fill="#A5936B"/><circle cx="100" cy="192" r="2.5" fill="#A5936B"/>
+  <circle cx="8" cy="100" r="2.5" fill="#A5936B"/><circle cx="192" cy="100" r="2.5" fill="#A5936B"/>
+  <circle cx="35" cy="35" r="1.8" fill="#D6C9AE"/><circle cx="165" cy="35" r="1.8" fill="#D6C9AE"/>
+  <circle cx="35" cy="165" r="1.8" fill="#D6C9AE"/><circle cx="165" cy="165" r="1.8" fill="#D6C9AE"/>
+</svg>

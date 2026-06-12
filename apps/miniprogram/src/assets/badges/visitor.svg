@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="60" y1="30" x2="140" y2="170" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F7F4E3"/><stop offset="1" stop-color="#E6D6BF"/>
+    </linearGradient>
+    <linearGradient id="ring" x1="100" y1="20" x2="100" y2="180" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#D6BF93"/><stop offset="1" stop-color="#BEA97E"/>
+    </linearGradient>
+    <linearGradient id="body" x1="100" y1="40" x2="100" y2="160" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#CEB888"/><stop offset="1" stop-color="#A5936B"/>
+    </linearGradient>
+    <linearGradient id="rose" x1="100" y1="65" x2="100" y2="135" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF7DE"/><stop offset="1" stop-color="#CEB888"/>
+    </linearGradient>
+  </defs>
+  <!-- 外圈 -->
+  <circle cx="100" cy="100" r="96" fill="#342C27" stroke="#5E4730" stroke-width="1.2"/>
+  <!-- 金色环 -->
+  <circle cx="100" cy="100" r="88" fill="url(#ring)" stroke="#8A7957" stroke-width=".5"/>
+  <!-- 内圈 -->
+  <circle cx="100" cy="100" r="78" fill="#4A423D" stroke="#5E4730" stroke-width=".7"/>
+  <!-- 垂直胶囊体（徽章主体） -->
+  <rect x="72" y="34" rx="18" ry="18" width="56" height="132" fill="url(#body)" stroke="#5E4730" stroke-width=".8"/>
+  <rect x="78" y="40" rx="14" ry="14" width="44" height="120" fill="#CEB888" stroke="#8A7957" stroke-width=".4"/>
+  <!-- 罗盘玫瑰 - 北 -->
+  <path d="M100 62 L104 92 L100 88 L96 92Z" fill="url(#rose)" stroke="#CCA96F" stroke-width=".6" stroke-linejoin="round"/>
+  <!-- 罗盘玫瑰 - 南 -->
+  <path d="M100 138 L96 108 L100 112 L104 108Z" fill="url(#rose)" stroke="#CCA96F" stroke-width=".6" stroke-linejoin="round"/>
+  <!-- 罗盘玫瑰 - 东 -->
+  <path d="M138 100 L108 96 L112 100 L108 104Z" fill="url(#rose)" stroke="#CCA96F" stroke-width=".6" stroke-linejoin="round"/>
+  <!-- 罗盘玫瑰 - 西 -->
+  <path d="M62 100 L92 104 L88 100 L92 96Z" fill="url(#rose)" stroke="#CCA96F" stroke-width=".6" stroke-linejoin="round"/>
+  <!-- 中心圆 -->
+  <circle cx="100" cy="100" r="8" fill="#B8A279" stroke="#8A7957" stroke-width="1"/>
+  <circle cx="100" cy="100" r="3.5" fill="#4A423D"/>
+  <!-- 装饰圆点 -->
+  <circle cx="100" cy="28" r="3" fill="#332B28"/>
+  <circle cx="100" cy="172" r="3" fill="#332B28"/>
+  <!-- 环上刻度 -->
+  <line x1="100" y1="14" x2="100" y2="22" stroke="#CBB890" stroke-width=".8" stroke-linecap="round"/>
+  <line x1="100" y1="178" x2="100" y2="186" stroke="#CBB890" stroke-width=".8" stroke-linecap="round"/>
+  <line x1="14" y1="100" x2="22" y2="100" stroke="#CBB890" stroke-width=".8" stroke-linecap="round"/>
+  <line x1="178" y1="100" x2="186" y2="100" stroke="#CBB890" stroke-width=".8" stroke-linecap="round"/>
+  <!-- 对角刻度 -->
+  <line x1="30" y1="30" x2="36" y2="36" stroke="#CBB890" stroke-width=".6" stroke-linecap="round"/>
+  <line x1="170" y1="30" x2="164" y2="36" stroke="#CBB890" stroke-width=".6" stroke-linecap="round"/>
+  <line x1="30" y1="170" x2="36" y2="164" stroke="#CBB890" stroke-width=".6" stroke-linecap="round"/>
+  <line x1="170" y1="170" x2="164" y2="164" stroke="#CBB890" stroke-width=".6" stroke-linecap="round"/>
+</svg>

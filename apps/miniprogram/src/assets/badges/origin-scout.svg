@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="40" y1="20" x2="160" y2="180" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F7F4E3"/><stop offset="1" stop-color="#E6D6BF"/>
+    </linearGradient>
+    <linearGradient id="scope" x1="60" y1="50" x2="140" y2="140" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6B5344"/><stop offset="1" stop-color="#5E4730"/>
+    </linearGradient>
+    <linearGradient id="hill" x1="40" y1="100" x2="160" y2="160" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#A5936B"/><stop offset="1" stop-color="#87714B"/>
+    </linearGradient>
+  </defs>
+  <circle cx="100" cy="100" r="96" fill="url(#bg)" stroke="#5E4730" stroke-width="1.2"/>
+  <circle cx="100" cy="100" r="88" fill="none" stroke="#D6C9AE" stroke-width=".5"/>
+  <!-- distant hills/mountains -->
+  <path d="M20 130 Q50 90 80 115 Q100 80 130 110 Q155 85 180 130Z" fill="url(#hill)" stroke="#5E4730" stroke-width=".5" stroke-linejoin="round"/>
+  <path d="M30 135 Q60 105 90 125 Q110 100 140 120 Q160 100 175 135Z" fill="#87714B" stroke="#5E4730" stroke-width=".35" stroke-linejoin="round" opacity=".6"/>
+  <!-- coffee plantation rows on hillside -->
+  <path d="M60 125 Q75 118 90 125" stroke="#5E4730" stroke-width=".3" stroke-linecap="round"/>
+  <path d="M55 130 Q75 122 95 130" stroke="#5E4730" stroke-width=".3" stroke-linecap="round"/>
+  <path d="M110 118 Q125 112 140 120" stroke="#5E4730" stroke-width=".3" stroke-linecap="round"/>
+  <!-- telescope body -->
+  <path d="M58 72 L125 100" stroke="url(#scope)" stroke-width="6" stroke-linecap="round"/>
+  <!-- telescope front lens -->
+  <ellipse cx="128" cy="101" rx="12" ry="14" transform="rotate(22 128 101)" fill="#E6D6BF" stroke="#5E4730" stroke-width=".8"/>
+  <ellipse cx="130" cy="102" rx="8" ry="10" transform="rotate(22 130 102)" fill="#D6C9AE" stroke="#5E4730" stroke-width=".4"/>
+  <!-- lens reflection -->
+  <path d="M133 96 Q136 99 134 104" stroke="#F7F4E3" stroke-width=".5" stroke-linecap="round" opacity=".7"/>
+  <!-- telescope eyepiece -->
+  <circle cx="55" cy="70" r="6" fill="#6B5344" stroke="#5E4730" stroke-width=".7"/>
+  <circle cx="55" cy="70" r="3" fill="#5E4730"/>
+  <!-- tripod -->
+  <path d="M85 88 L78 148" stroke="#5E4730" stroke-width="1.5" stroke-linecap="round"/>
+  <path d="M90 90 L100 148" stroke="#5E4730" stroke-width="1.5" stroke-linecap="round"/>
+  <path d="M82 86 L65 140" stroke="#5E4730" stroke-width="1.5" stroke-linecap="round"/>
+  <!-- flag on hilltop = discovered origin -->
+  <path d="M135 88 L135 105" stroke="#5E4730" stroke-width=".8" stroke-linecap="round"/>
+  <path d="M135 88 L145 92 L135 96Z" fill="#8F583A" stroke="#5E4730" stroke-width=".4"/>
+  <!-- ring decorations -->
+  <circle cx="100" cy="8" r="2.5" fill="#A5936B"/><circle cx="100" cy="192" r="2.5" fill="#A5936B"/>
+  <circle cx="8" cy="100" r="2.5" fill="#A5936B"/><circle cx="192" cy="100" r="2.5" fill="#A5936B"/>
+  <circle cx="35" cy="35" r="1.8" fill="#D6C9AE"/><circle cx="165" cy="35" r="1.8" fill="#D6C9AE"/>
+  <circle cx="35" cy="165" r="1.8" fill="#D6C9AE"/><circle cx="165" cy="165" r="1.8" fill="#D6C9AE"/>
+</svg>

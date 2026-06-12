@@ -8,7 +8,7 @@ type MiniProgramApi = {
   setStorageSync(key: string, data: unknown): void;
   removeStorageSync(key: string): void;
   reLaunch(options: { url: string }): void;
-  navigateTo(options: { url: string }): void;
+  navigateTo(options: { url: string; fail?: (error: unknown) => void }): void;
   showToast(options: { title: string; icon?: string; duration?: number }): void;
   setNavigationBarTitle(options: { title: string }): void;
   setClipboardData(options: Record<string, unknown>): void;
@@ -62,7 +62,7 @@ export function reLaunch(options: { url: string }): void {
   getMiniProgramApi().reLaunch(options);
 }
 
-export function navigateTo(options: { url: string }): void {
+export function navigateTo(options: { url: string; fail?: (error: unknown) => void }): void {
   getMiniProgramApi().navigateTo(options);
 }
 
