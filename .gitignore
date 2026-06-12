@@ -45,3 +45,4 @@ project.private.config.json
 
 # Claude Code local settings (contains credentials & permissions)
 .claude/settings.local.json
+.vercel
