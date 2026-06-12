@@ -31,5 +31,17 @@ output/
 __pycache__/
 *.pyc
 
+# Tool artifacts
+.swc/
+.codex/
+.codex-bin/
+.hermes/
+supabase/.temp/
+
+# Stray configs
+project.config.json
+project.private.config.json
+.env.test
+
 # Claude Code local settings (contains credentials & permissions)
 .claude/settings.local.json
