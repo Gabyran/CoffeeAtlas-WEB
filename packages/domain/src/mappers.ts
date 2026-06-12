@@ -1,4 +1,4 @@
-import { toSnapshotPrice, toSnapshotText, validateSnapshotId } from './validation';
+import { toSnapshotPrice, toSnapshotText, validateSnapshotId } from './validation.js';
 
 export interface BeanFavoriteSnapshot {
   id: string;

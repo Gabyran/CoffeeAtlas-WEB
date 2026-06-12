@@ -2,6 +2,7 @@
   "name": "@coffee-atlas/domain",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -17,9 +18,7 @@
     "lint": "pnpm --dir ../.. exec eslint packages/domain/src --ext .js,.jsx,.ts,.tsx",
     "test": "pnpm build && node --test --experimental-strip-types src/**/*.test.ts"
   },
-  "dependencies": {
-    "@coffee-atlas/shared-types": "workspace:*"
-  },
+  "dependencies": {},
   "devDependencies": {
     "typescript": "5.8.2"
   }

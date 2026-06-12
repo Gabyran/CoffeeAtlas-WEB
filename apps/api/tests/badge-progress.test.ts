@@ -67,7 +67,7 @@ test('badge routes use requireUser and service-role backed badge storage', () =>
   assert.match(badgeSyncRoute, /requireUser/);
   assert.match(badgeSyncRoute, /apiSuccess/);
   assert.match(badgesApi, /queryRows/);
-  assert.match(badgesApi, /execute/);
+  assert.match(badgesApi, /withTransaction/);
   assert.doesNotMatch(badgesApi, /requireSupabaseServer\(/);
   assert.doesNotMatch(badgesApi, /requireSupabaseServiceRoleServer/);
 });

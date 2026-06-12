@@ -1,5 +1,5 @@
 import { badRequest } from './api-primitives.ts';
-import { execute, queryRows } from './database.ts';
+import { queryRows, withTransaction } from './database.ts';
 
 interface UserBadgeProgressRow {
   badge_id: string;
@@ -54,12 +54,14 @@ export async function syncBadgeIds(userId: string, badgeIds: string[]): Promise<
     return `($${base + 1}, $${base + 2}, $${base + 3})`;
   });
 
-  await execute(
-    `insert into public.user_badge_progress (user_id, badge_id, unlocked_at)
-     values ${placeholders.join(', ')}
-     on conflict (user_id, badge_id) do nothing`,
-    values
-  );
+  await withTransaction(async (client) => {
+    await client.query(
+      `insert into public.user_badge_progress (user_id, badge_id, unlocked_at)
+       values ${placeholders.join(', ')}
+       on conflict (user_id, badge_id) do nothing`,
+      values
+    );
+  });
 
   return badgeIds.length;
 }
