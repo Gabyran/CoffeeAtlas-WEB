@@ -21,7 +21,7 @@ jobs:
           version: 9.15.4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
@@ -37,7 +37,7 @@ jobs:
           version: 9.15.4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @coffeeatlas/api test
@@ -52,7 +52,7 @@ jobs:
           version: 9.15.4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @coffeeatlas/miniprogram test
