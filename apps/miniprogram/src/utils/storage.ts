@@ -476,13 +476,21 @@ export interface BadgeUnlockDates {
 }
 
 export function getBadgeUnlockDates(): BadgeUnlockDates {
-  return getStorageSync<BadgeUnlockDates>(BADGE_UNLOCK_DATES_KEY) || {};
+  try {
+    return getStorageSync<BadgeUnlockDates>(BADGE_UNLOCK_DATES_KEY) || {};
+  } catch {
+    return {};
+  }
 }
 
 export function setBadgeUnlockDate(badgeId: string, date: string): void {
-  const dates = getBadgeUnlockDates();
-  dates[badgeId] = date;
-  setStorageSync(BADGE_UNLOCK_DATES_KEY, dates);
+  try {
+    const dates = getBadgeUnlockDates();
+    dates[badgeId] = date;
+    setStorageSync(BADGE_UNLOCK_DATES_KEY, dates);
+  } catch {
+    // 测试环境或存储不可用时静默失败
+  }
 }
 
 export function getBadgeUnlockDate(badgeId: string): string | undefined {

@@ -1,7 +1,4 @@
 {
   "navigationBarTitleText": "3D 徽章",
-  "navigationStyle": "custom",
-  "usingComponents": {
-    "xr-badge-viewer": "../../wxcomponents/xr-badge-viewer/index"
-  }
+  "usingComponents": {}
 }

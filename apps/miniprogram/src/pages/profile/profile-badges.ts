@@ -1,4 +1,4 @@
-import { getBadgeUnlockDate, setBadgeUnlockDate, formatUnlockDate } from '../../utils/storage';
+import { getBadgeUnlockDate, setBadgeUnlockDate, formatUnlockDate } from '../../utils/storage.ts';
 
 type ProfileBadgeIconName = 'coffee' | 'user' | 'globe' | 'map-pin' | 'heart' | 'heart-filled' | 'share';
 type BadgeMetricKey =

@@ -1,35 +1,15 @@
-<view class="badge-3d-page">
-  <!-- 自定义导航栏 -->
-  <view class="badge-3d-nav" style="padding-top: {{statusBarHeight}}px;">
-    <view class="badge-3d-back" bindtap="handleBack">
-      <text class="badge-3d-back-arrow">←</text>
-      <text class="badge-3d-back-text">返回</text>
+<view class="test-page">
+  <view class="test-page__header">
+    <text class="test-page__title">3D 徽章测试</text>
+    <text class="test-page__subtitle">badgeId: {{badgeId}}</text>
+  </view>
+  <view class="test-page__body">
+    <text class="test-page__status">页面加载成功 ✓</text>
+    <text class="test-page__url">{{modelUrl}}</text>
+  </view>
+  <view class="test-page__footer">
+    <view class="test-page__back" bindtap="handleBack">
+      <text class="test-page__back-text">← 返回</text>
     </view>
-    <text class="badge-3d-title">{{badgeTitle}}</text>
-    <view class="badge-3d-nav-spacer" />
-  </view>
-
-  <!-- 加载中 -->
-  <view class="badge-3d-loading" wx:if="{{loading}}">
-    <view class="badge-3d-spinner" />
-    <text class="badge-3d-loading-text">加载 3D 模型中…</text>
-  </view>
-
-  <!-- 错误状态 -->
-  <view class="badge-3d-error" wx:if="{{error}}">
-    <text class="badge-3d-error-text">{{errorMessage}}</text>
-    <view class="badge-3d-retry-btn" bindtap="handleRetry">
-      <text class="badge-3d-retry-text">重试</text>
-    </view>
-  </view>
-
-  <!-- 3D 场景 -->
-  <view class="badge-3d-scene" wx:if="{{!error}}">
-    <xr-badge-viewer model-url="{{modelUrl}}" />
-  </view>
-
-  <!-- 操作提示 -->
-  <view class="badge-3d-hint" wx:if="{{!loading && !error && showHint}}">
-    <text class="badge-3d-hint-text">拖拽旋转 · 双指缩放</text>
   </view>
 </view>
