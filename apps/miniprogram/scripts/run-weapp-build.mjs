@@ -47,6 +47,9 @@ const DIST_INTEROP_REWRITES = [
 ];
 const isWatchMode = process.argv.includes('--watch');
 
+const NATIVE_SOURCE_DIRS = ['wxpages', 'wxcomponents'];
+const DIST_APP_JSON = path.join(ROOT, 'dist', 'app.json');
+
 function log(message) {
   console.log(`[weapp-build] ${message}`);
 }
@@ -205,6 +208,90 @@ async function patchDistProjectConfigFiles() {
   return patchedCount;
 }
 
+async function copyDirRecursive(srcDir, destDir) {
+  await fs.mkdir(destDir, { recursive: true });
+  const entries = await fs.readdir(srcDir, { withFileTypes: true });
+
+  let copiedCount = 0;
+  for (const entry of entries) {
+    const srcPath = path.join(srcDir, entry.name);
+    const destPath = path.join(destDir, entry.name);
+
+    if (entry.isDirectory()) {
+      copiedCount += await copyDirRecursive(srcPath, destPath);
+    } else if (entry.isFile()) {
+      try {
+        const [srcContent, destContent] = await Promise.all([
+          fs.readFile(srcPath, 'utf8'),
+          fs.readFile(destPath, 'utf8').catch(() => null),
+        ]);
+        if (srcContent !== destContent) {
+          await fs.writeFile(destPath, srcContent, 'utf8');
+          copiedCount += 1;
+        }
+      } catch {
+        await fs.writeFile(destPath, await fs.readFile(srcPath, 'utf8'), 'utf8');
+        copiedCount += 1;
+      }
+    }
+  }
+  return copiedCount;
+}
+
+async function syncNativeFiles() {
+  let copiedCount = 0;
+
+  for (const dirName of NATIVE_SOURCE_DIRS) {
+    const srcDir = path.join(ROOT, 'src', dirName);
+    const destDir = path.join(ROOT, 'dist', dirName);
+
+    try {
+      copiedCount += await copyDirRecursive(srcDir, destDir);
+    } catch (error) {
+      if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  try {
+    const appJsonContent = await fs.readFile(DIST_APP_JSON, 'utf8');
+    const appJson = JSON.parse(appJsonContent);
+    const pages = appJson.pages || [];
+    let pagesChanged = false;
+
+    for (const dirName of NATIVE_SOURCE_DIRS) {
+      if (dirName !== 'wxpages') continue;
+      const srcDir = path.join(ROOT, 'src', dirName);
+      try {
+        const entries = await fs.readdir(srcDir, { withFileTypes: true });
+        for (const entry of entries) {
+          if (entry.isDirectory()) {
+            const pagePath = `${dirName}/${entry.name}/index`;
+            if (!pages.includes(pagePath)) {
+              pages.push(pagePath);
+              pagesChanged = true;
+            }
+          }
+        }
+      } catch {
+        // skip
+      }
+    }
+
+    if (pagesChanged) {
+      appJson.pages = pages;
+      await fs.writeFile(DIST_APP_JSON, JSON.stringify(appJson, null, 2) + '\n', 'utf8');
+      copiedCount += 1;
+    }
+  } catch {
+    // dist/app.json 可能还没生成
+  }
+
+  return copiedCount;
+}
+
 function runCommand(command, args, options = {}) {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
@@ -234,16 +321,17 @@ async function runWatchMode() {
 
     syncing = true;
     try {
-      const [sourcePatchedCount, copiedCount, patchedCount, configPatchedCount] = await Promise.all([
+      const [sourcePatchedCount, copiedCount, patchedCount, configPatchedCount, nativeSyncCount] = await Promise.all([
         patchPrebundleSourceFiles(),
         syncPrebundleFiles(),
         patchDistInteropFiles(),
         patchDistProjectConfigFiles(),
+        syncNativeFiles(),
       ]);
 
-      if (sourcePatchedCount > 0 || copiedCount > 0 || patchedCount > 0 || configPatchedCount > 0) {
+      if (sourcePatchedCount > 0 || copiedCount > 0 || patchedCount > 0 || configPatchedCount > 0 || nativeSyncCount > 0) {
         log(
-          `已修正 ${sourcePatchedCount} 个源包装文件，同步 ${copiedCount} 个 prebundle 文件，并修正 ${patchedCount + configPatchedCount} 个构建包装/配置文件`
+          `已修正 ${sourcePatchedCount} 个源包装文件，同步 ${copiedCount} 个 prebundle 文件，同步 ${nativeSyncCount} 个原生文件，并修正 ${patchedCount + configPatchedCount} 个构建包装/配置文件`
         );
       }
     } finally {
@@ -300,14 +388,15 @@ async function main() {
   }
 
   await runCommand('pnpm', ['exec', 'taro', 'build', '--type', 'weapp']);
-  const [sourcePatchedCount, copiedCount, patchedCount, configPatchedCount] = await Promise.all([
+  const [sourcePatchedCount, copiedCount, patchedCount, configPatchedCount, nativeSyncCount] = await Promise.all([
     patchPrebundleSourceFiles(),
     syncPrebundleFiles(),
     patchDistInteropFiles(),
     patchDistProjectConfigFiles(),
+    syncNativeFiles(),
   ]);
   log(
-    `构建完成，已修正 ${sourcePatchedCount} 个源包装文件，同步 ${copiedCount} 个 prebundle 文件，并修正 ${patchedCount + configPatchedCount} 个构建包装/配置文件`
+    `构建完成，已修正 ${sourcePatchedCount} 个源包装文件，同步 ${copiedCount} 个 prebundle 文件，同步 ${nativeSyncCount} 个原生文件，并修正 ${patchedCount + configPatchedCount} 个构建包装/配置文件`
   );
 }
 

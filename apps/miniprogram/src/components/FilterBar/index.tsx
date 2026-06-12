@@ -1,4 +1,5 @@
-import { ScrollView, View, Text } from '@tarojs/components';
+import { ScrollView, View } from '@tarojs/components';
+import { Chip } from '../ui';
 import './index.scss';
 
 export interface FilterOption {
@@ -37,26 +38,26 @@ export default function FilterBar({ processValue, roastValue, onProcessChange, o
           {PROCESS_OPTIONS.map((opt) => {
             const active = processValue === opt.value;
             return (
-              <View
+              <Chip
                 key={opt.value}
-                className={`filter-bar__chip ${active ? 'filter-bar__chip--active' : ''}`}
+                variant={active ? 'active' : 'default'}
                 onClick={() => onProcessChange(active ? '' : opt.value)}
               >
-                <Text className="filter-bar__chip-text">{opt.label}</Text>
-              </View>
+                {opt.label}
+              </Chip>
             );
           })}
           <View className="filter-bar__divider" />
           {ROAST_OPTIONS.map((opt) => {
             const active = roastValue === opt.value;
             return (
-              <View
+              <Chip
                 key={opt.value}
-                className={`filter-bar__chip ${active ? 'filter-bar__chip--active' : ''}`}
+                variant={active ? 'active' : 'default'}
                 onClick={() => onRoastChange(active ? '' : opt.value)}
               >
-                <Text className="filter-bar__chip-text">{opt.label}</Text>
-              </View>
+                {opt.label}
+              </Chip>
             );
           })}
         </View>

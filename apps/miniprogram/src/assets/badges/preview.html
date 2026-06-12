@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Badge Preview</title>
+<style>
+  body { margin: 0; padding: 40px; background: #2a1f17; font-family: -apple-system, sans-serif; }
+  h1 { color: #e6d6bf; font-size: 18px; margin-bottom: 8px; }
+  p { color: #a5936b; font-size: 13px; margin: 0 0 32px; }
+  .grid { display: flex; flex-wrap: wrap; gap: 40px; align-items: flex-start; }
+  .badge-preview { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .badge-preview img { border-radius: 50%; box-shadow: 0 4px 20px rgba(0,0,0,.4); }
+  .badge-preview .label { color: #d6c9ae; font-size: 13px; text-align: center; }
+  .badge-preview .sub { color: #8b7355; font-size: 11px; }
+  .sizes { display: flex; gap: 16px; align-items: center; margin-top: 48px; }
+  .sizes .size-label { color: #8b7355; font-size: 11px; }
+</style>
+</head>
+<body>
+  <h1>CoffeeAtlas Badge System — SVG Preview</h1>
+  <p>Hand-drawn editorial style, earth-tone palette, medallion format</p>
+
+  <div class="grid">
+    <div class="badge-preview">
+      <img src="visitor.svg" width="200" height="200">
+      <span class="label">入馆访客<br><span class="sub">钥匙与门</span></span>
+    </div>
+    <div class="badge-preview">
+      <img src="bean-starter.svg" width="200" height="200">
+      <span class="label">豆单初藏<br><span class="sub">双手捧豆</span></span>
+    </div>
+    <div class="badge-preview">
+      <img src="origin-scout.svg" width="200" height="200">
+      <span class="label">产地侦察兵<br><span class="sub">望远镜与山丘</span></span>
+    </div>
+    <div class="badge-preview">
+      <img src="serial-sharer.svg" width="200" height="200">
+      <span class="label">种草机器<br><span class="sub">蒲公英传播</span></span>
+    </div>
+  </div>
+
+  <div style="margin-top:48px">
+    <h1>缩小效果 (44px)</h1>
+    <p>模拟 BadgeCard 中实际渲染尺寸</p>
+    <div class="sizes">
+      <div class="badge-preview">
+        <img src="visitor.svg" width="44" height="44">
+        <span class="size-label">visitor</span>
+      </div>
+      <div class="badge-preview">
+        <img src="bean-starter.svg" width="44" height="44">
+        <span class="size-label">bean-starter</span>
+      </div>
+      <div class="badge-preview">
+        <img src="origin-scout.svg" width="44" height="44">
+        <span class="size-label">origin-scout</span>
+      </div>
+      <div class="badge-preview">
+        <img src="serial-sharer.svg" width="44" height="44">
+        <span class="size-label">serial-sharer</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

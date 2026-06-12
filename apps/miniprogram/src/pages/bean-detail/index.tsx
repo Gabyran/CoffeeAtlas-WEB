@@ -4,6 +4,7 @@ import { useShareAppMessage, useShareTimeline } from '@tarojs/taro';
 import { toBeanFavoriteSnapshot } from '@coffee-atlas/domain';
 
 import Icon from '../../components/Icon';
+import { Avatar, Badge, Separator } from '../../components/ui';
 import { addFavorite, getBeanById, getFavorites, getRoasterById, removeFavorite } from '../../services/api';
 import type { BeanDetail, RoasterDetail } from '../../types';
 import { isLoggedIn } from '../../utils/auth';
@@ -153,6 +154,7 @@ export default function BeanDetailPage() {
   const roasterCity = roaster?.city?.trim() || bean?.city || '';
   const roasterBeanCount = typeof roaster?.beanCount === 'number' && roaster.beanCount > 0 ? `${roaster.beanCount} 款豆单` : '';
   const roasterInitial = roasterName.trim().charAt(0).toUpperCase() || 'R';
+  const hasDiscount = bean?.discountedPrice != null && bean.discountedPrice < bean.price;
 
   const handleFavorite = async () => {
     if (!bean) return;
@@ -206,99 +208,120 @@ export default function BeanDetailPage() {
   if (loading) {
     return (
       <View className="bean-detail bean-detail--loading">
-        <Text className="bean-detail__loading-text">加载中...</Text>
+        <View className="bean-detail__skeleton">
+          <View className="bean-detail__skeleton-image" />
+          <View className="bean-detail__skeleton-content">
+            <View className="bean-detail__skeleton-line bean-detail__skeleton-line--lg" />
+            <View className="bean-detail__skeleton-line bean-detail__skeleton-line--md" />
+            <View className="bean-detail__skeleton-line bean-detail__skeleton-line--sm" />
+          </View>
+        </View>
       </View>
     );
   }
 
   if (!bean) {
     return (
-      <View className="bean-detail bean-detail--loading">
-        <Text className="bean-detail__loading-text">未找到该咖啡豆</Text>
+      <View className="bean-detail bean-detail--empty">
+        <Icon name="coffee" size={64} color="rgba(139,90,43,0.2)" />
+        <Text className="bean-detail__empty-text">未找到该咖啡豆</Text>
       </View>
     );
   }
 
+  const infoItems = [
+    { label: '产地', value: [bean.originCountry, bean.originRegion].filter(Boolean).join(' · ') },
+    { label: '处理法', value: bean.process },
+    { label: '烘焙度', value: bean.roastLevel },
+    { label: '品种', value: bean.variety },
+    { label: '庄园', value: bean.farm },
+  ].filter((item) => item.value);
+
   return (
     <View className="bean-detail">
-      <View className="bean-detail__image-wrap">
+      <View className="bean-detail__hero">
         {bean.imageUrl ? (
-          <Image src={bean.imageUrl} mode="aspectFill" className="bean-detail__image" />
+          <Image src={bean.imageUrl} mode="aspectFill" className="bean-detail__hero-image" />
         ) : (
-          <View className="bean-detail__image-placeholder">
-            <Icon name="coffee" size={80} color="rgba(139,90,43,0.25)" />
+          <View className="bean-detail__hero-placeholder">
+            <Icon name="coffee" size={80} color="rgba(139,90,43,0.2)" />
           </View>
         )}
-        {bean.isNewArrival && <View className="bean-detail__badge">新品</View>}
+        <View className="bean-detail__hero-overlay" />
+        {bean.isNewArrival && (
+          <View className="bean-detail__hero-badge">
+            <Badge variant="primary" size="sm">NEW</Badge>
+          </View>
+        )}
       </View>
 
-      <View className="bean-detail__body">
+      <View className="bean-detail__content">
         <View
-          className="bean-detail__roaster-card"
-          hoverClass="bean-detail__roaster-card--active"
+          className="bean-detail__roaster-section"
+          hoverClass="bean-detail__roaster-section--active"
           hoverStartTime={20}
           hoverStayTime={80}
           onClick={handleRoasterTap}
         >
-          <View className="bean-detail__roaster-card-media">
-            {roaster?.logoUrl ? (
-              <Image src={roaster.logoUrl} mode="aspectFit" className="bean-detail__roaster-logo" />
-            ) : (
-              <View className="bean-detail__roaster-fallback">
-                <Text className="bean-detail__roaster-initial">{roasterInitial}</Text>
+          <Avatar
+            src={roaster?.logoUrl}
+            fallback={<Text className="bean-detail__roaster-initial">{roasterInitial}</Text>}
+            size="lg"
+          />
+          <View className="bean-detail__roaster-info">
+            <Text className="bean-detail__roaster-label">烘焙师</Text>
+            <Text className="bean-detail__roaster-name">{roasterName}</Text>
+            <Text className="bean-detail__roaster-desc" numberOfLines={2}>
+              {roasterDescription}
+            </Text>
+            {(roasterCity || roasterBeanCount) && (
+              <View className="bean-detail__roaster-chips">
+                {roasterCity && <Badge variant="default" size="sm">{roasterCity}</Badge>}
+                {roasterBeanCount && <Badge variant="outline" size="sm">{roasterBeanCount}</Badge>}
               </View>
             )}
           </View>
+          <View className="bean-detail__roaster-arrow">
+            <Icon name="chevron-down" size={18} color="#c85c3d" />
+          </View>
+        </View>
 
-          <View className="bean-detail__roaster-card-copy">
-            <Text className="bean-detail__roaster-eyebrow">烘焙师信息</Text>
-            <Text className="bean-detail__roaster-name">{roasterName}</Text>
-            <Text className="bean-detail__roaster-desc">{roasterDescription}</Text>
-            <View className="bean-detail__roaster-meta">
-              {roasterCity ? <Text className="bean-detail__roaster-chip">{roasterCity}</Text> : null}
-              {roasterBeanCount ? <Text className="bean-detail__roaster-chip">{roasterBeanCount}</Text> : null}
+        <View className="bean-detail__main">
+          <Text className="bean-detail__name">{bean.name}</Text>
+
+          <View className="bean-detail__price-section">
+            <View className="bean-detail__price-group">
+              {hasDiscount && <Text className="bean-detail__original-price">¥{bean.price}</Text>}
+              <Text className="bean-detail__price">¥{displayPrice}</Text>
+            </View>
+            {salesLabel && <Badge variant="secondary">{salesLabel} 已售</Badge>}
+          </View>
+        </View>
+
+        <Separator className="bean-detail__separator" />
+
+        {infoItems.length > 0 && (
+          <View className="bean-detail__info-card">
+            <Text className="bean-detail__section-title">咖啡豆信息</Text>
+            <View className="bean-detail__info-grid">
+              {infoItems.map((item) => (
+                <View key={item.label} className="bean-detail__info-row">
+                  <Text className="bean-detail__info-label">{item.label}</Text>
+                  <Text className="bean-detail__info-value">{item.value}</Text>
+                </View>
+              ))}
             </View>
           </View>
-
-          <View className="bean-detail__roaster-arrow">
-            <Text className="bean-detail__roaster-arrow-text">↗</Text>
-          </View>
-        </View>
-
-        <Text className="bean-detail__name">{bean.name}</Text>
-
-        <View className="bean-detail__price-row">
-          <Text className="bean-detail__price">¥{displayPrice}</Text>
-          {salesLabel && <Text className="bean-detail__sales">{salesLabel} 已售</Text>}
-        </View>
-
-        <View className="bean-detail__divider" />
-
-        <View className="bean-detail__info-grid">
-          {[
-            { label: '产地', value: [bean.originCountry, bean.originRegion].filter(Boolean).join(' · ') },
-            { label: '处理法', value: bean.process },
-            { label: '烘焙度', value: bean.roastLevel },
-            { label: '品种', value: bean.variety },
-            { label: '庄园', value: bean.farm },
-          ]
-            .filter((item) => item.value)
-            .map((item) => (
-              <View key={item.label} className="bean-detail__info-item">
-                <Text className="bean-detail__info-label">{item.label}</Text>
-                <Text className="bean-detail__info-value">{item.value}</Text>
-              </View>
-            ))}
-        </View>
+        )}
 
         {(bean.tastingNotes?.length ?? 0) > 0 && (
-          <View className="bean-detail__notes">
-            <Text className="bean-detail__notes-title">风味描述</Text>
-            <View className="bean-detail__notes-tags">
+          <View className="bean-detail__flavor-card">
+            <Text className="bean-detail__section-title">风味描述</Text>
+            <View className="bean-detail__flavor-tags">
               {bean.tastingNotes?.map((note) => (
-                <Text key={note} className="bean-detail__note-tag">
+                <Badge key={note} variant="outline" size="md">
                   {note}
-                </Text>
+                </Badge>
               ))}
             </View>
           </View>
@@ -306,31 +329,37 @@ export default function BeanDetailPage() {
       </View>
 
       <View className="bean-detail__bottom-bar">
-        <View className="bean-detail__bottom-actions">
+        <View className="bean-detail__actions">
           <View
-            className={`bean-detail__bottom-action${favorited ? ' bean-detail__bottom-action--active' : ''}`}
+            className={`bean-detail__action-btn${favorited ? ' bean-detail__action-btn--active' : ''}`}
             onClick={handleFavorite}
           >
-            <Icon name={favorited ? 'heart-filled' : 'heart'} size={18} color={favorited ? '#c85c3d' : '#7b5b45'} />
-            <Text className="bean-detail__bottom-action-label">收藏</Text>
+            <Icon name={favorited ? 'heart-filled' : 'heart'} size={20} color={favorited ? '#c85c3d' : '#7b5b45'} />
+            <Text className="bean-detail__action-label">收藏</Text>
           </View>
 
-          <Button className="bean-detail__bottom-action bean-detail__bottom-action--share" openType="share">
-            <Icon name="share" size={18} color="#7b5b45" />
-            <Text className="bean-detail__bottom-action-label">分享</Text>
+          <Button className="bean-detail__action-btn" openType="share">
+            <Icon name="share" size={20} color="#7b5b45" />
+            <Text className="bean-detail__action-label">分享</Text>
           </Button>
         </View>
 
-        <View className="bean-detail__bottom-price">
-          <Text className="bean-detail__bottom-price-label">价格</Text>
-          <Text className="bean-detail__bottom-price-value">¥{displayPrice}</Text>
-        </View>
-
-        {purchaseUrl ? (
-          <View className="bean-detail__buy-button" onClick={handlePurchase}>
-            <Text className="bean-detail__buy-button-text">去购买</Text>
+        <View className="bean-detail__purchase-section">
+          <View className="bean-detail__purchase-price">
+            <Text className="bean-detail__purchase-price-label">价格</Text>
+            <Text className="bean-detail__purchase-price-value">¥{displayPrice}</Text>
           </View>
-        ) : null}
+
+          {purchaseUrl ? (
+            <View className="bean-detail__buy-btn" onClick={handlePurchase}>
+              <Text className="bean-detail__buy-btn-text">去购买</Text>
+            </View>
+          ) : (
+            <View className="bean-detail__buy-btn bean-detail__buy-btn--disabled">
+              <Text className="bean-detail__buy-btn-text">暂无链接</Text>
+            </View>
+          )}
+        </View>
       </View>
     </View>
   );

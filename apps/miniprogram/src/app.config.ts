@@ -7,6 +7,7 @@ export default defineAppConfig({
     'pages/profile/index',
     'pages/bean-detail/index',
     'pages/roaster-detail/index',
+    'wxpages/badge-3d/index',
   ],
   window: {
     backgroundTextStyle: 'light',

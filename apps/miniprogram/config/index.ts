@@ -26,7 +26,10 @@ export default defineConfig(async (merge) => {
     plugins: [],
     defineConstants: {},
     copy: {
-      patterns: [],
+      patterns: [
+        { from: 'src/wxcomponents', to: 'dist/wxcomponents' },
+        { from: 'src/wxpages', to: 'dist/wxpages' },
+      ],
       options: {}
     },
     framework: 'react',

@@ -148,7 +148,7 @@ test('createSupabaseFetch adapts Taro.request to a fetch-like response', async (
 });
 
 test('createMiniProgramSupabaseClient uses postgrest client without realtime setup', async () => {
-  const supabase = await loadSupabaseModule({});
+  await loadSupabaseModule({});
   const client = await loadSupabaseModule({
     supabaseUrl: 'https://demo.supabase.co',
     supabaseAnonKey: 'demo-anon-key',

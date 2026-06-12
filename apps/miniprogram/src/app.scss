@@ -1,5 +1,7 @@
-// Shared design tokens aligned with the web experience.
+// shadcn-inspired design system for CoffeeAtlas miniprogram.
+// Semantic tokens support future native app migration.
 :root {
+  // Brand palette (legacy aliases kept for gradual migration)
   --color-coffee-dark: #3e2a1e;
   --color-coffee-light: #8b7355;
   --color-coffee-medium: #6b5344;
@@ -13,6 +15,7 @@
   --color-surface: #ffffff;
   --color-border: rgba(107, 83, 68, 0.15);
 
+  // Legacy atlas tokens (keep for compatibility)
   --atlas-paper: rgba(255, 252, 247, 0.96);
   --atlas-panel: rgba(255, 255, 255, 0.92);
   --atlas-veil: rgba(247, 241, 232, 0.86);
@@ -22,11 +25,14 @@
   --atlas-highlight: rgba(216, 111, 76, 0.16);
   --atlas-accent: #c85c3d;
 
+  // Typography
   --font-sans: 'SF Pro Text', 'Avenir Next', 'PingFang SC', 'Helvetica Neue', Helvetica, Arial,
     sans-serif;
   --font-serif: 'Iowan Old Style', 'Baskerville', 'Times New Roman', Georgia, serif;
 
+  // Spacing scale (shadcn-style)
   --page-gutter: 16px;
+  --space-0: 0px;
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -35,15 +41,45 @@
   --space-6: 24px;
   --space-7: 28px;
   --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
 
+  // Radius tokens
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-3xl: 28px;
   --radius-pill: 999px;
   --radius-card: 20px;
   --radius-card-lg: 28px;
 
+  // Shadow tokens
+  --shadow-xs: 0 1px 2px rgba(62, 42, 30, 0.04);
+  --shadow-sm: 0 2px 8px rgba(62, 42, 30, 0.06);
+  --shadow-md: 0 4px 16px rgba(62, 42, 30, 0.08);
+  --shadow-lg: 0 8px 24px rgba(62, 42, 30, 0.1);
+  --shadow-xl: 0 16px 40px rgba(62, 42, 30, 0.12);
   --shadow-card: 0 12px 30px rgba(62, 42, 30, 0.06);
   --shadow-card-hover: 0 18px 40px rgba(62, 42, 30, 0.1);
+
+  // Animation tokens
   --spring-easing: cubic-bezier(0.175, 0.885, 0.32, 1.275);
   --smooth-easing: cubic-bezier(0.4, 0, 0.2, 1);
+  --duration-fast: 150ms;
+  --duration-normal: 200ms;
+  --duration-slow: 300ms;
+
+  // Z-index tokens
+  --z-dropdown: 10;
+  --z-sticky: 20;
+  --z-fixed: 30;
+  --z-modal-backdrop: 40;
+  --z-modal: 50;
+  --z-popover: 60;
+  --z-tooltip: 70;
 }
 
 @keyframes fade-in-up {

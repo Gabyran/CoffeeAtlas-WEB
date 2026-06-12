@@ -20,9 +20,13 @@ export type BadgeIconName =
 
 const BADGE_ICON_PATHS: Record<BadgeIconName, string> = {
   visitor:
-    '<path d="M12 4C8 4 4 7 4 11v6c0 3 2 5 5 5h6c3 0 5-2 5-5v-6c0-4-4-7-8-7z" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>' +
-    '<path d="M12 4V2M8 2h8M18 10h3c1 0 2 1 2 2s-1 2-2 2h-1" stroke-width="1.5" stroke-linecap="round"/>' +
-    '<path d="M8 14c0-2 1.5-3 4-3s4 1 4 3" stroke-width="1.2" stroke-linecap="round"/>',
+    '<circle cx="12" cy="12" r="9.5" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>' +
+    '<circle cx="12" cy="12" r="7.5" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round"/>' +
+    '<path d="M12 4.5l1.2 5.5H10.8L12 4.5z" fill="currentColor" stroke-width="0.6" stroke-linejoin="round"/>' +
+    '<path d="M12 19.5l-1.2-5.5h2.4L12 19.5z" fill="currentColor" stroke-width="0.6" stroke-linejoin="round"/>' +
+    '<path d="M4.5 12l5.5-1.2v2.4L4.5 12z" fill="currentColor" stroke-width="0.6" stroke-linejoin="round"/>' +
+    '<path d="M19.5 12l-5.5 1.2v-2.4L19.5 12z" fill="currentColor" stroke-width="0.6" stroke-linejoin="round"/>' +
+    '<circle cx="12" cy="12" r="1.8" fill="currentColor" stroke-width="0"/>',
   'bean-starter':
     '<ellipse cx="12" cy="13" rx="5" ry="7" transform="rotate(-15 12 13)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>' +
     '<path d="M9 8c1.5 3 1.5 8 0 10" stroke-width="1.2" stroke-linecap="round"/>' +

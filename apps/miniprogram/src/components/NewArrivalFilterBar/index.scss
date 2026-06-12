@@ -1,43 +1,42 @@
 .new-arrival-filter-bar {
-  margin: 0 var(--page-gutter) 16px;
-  padding: 16px;
-  border-radius: 24px;
+  margin: 0 var(--page-gutter, 16px) var(--space-4, 16px);
+  padding: var(--space-4, 16px);
+  border-radius: var(--radius-2xl, 24px);
   background: linear-gradient(180deg, rgba(255, 252, 247, 0.98), rgba(250, 242, 233, 0.96));
-  border: 1px solid rgba(139, 115, 85, 0.16);
-  box-shadow: 0 14px 36px rgba(62, 42, 30, 0.08);
+  border: 1px solid rgba(139, 115, 85, 0.12);
+  box-shadow: var(--shadow-md);
 
   &__header {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 12px;
+    gap: var(--space-3, 12px);
+    margin-bottom: var(--space-3, 12px);
   }
 
   &__title {
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 700;
     color: var(--color-coffee-dark, #3e2a1e);
   }
 
   &__meta {
     font-size: 12px;
-    color: rgba(139, 115, 85, 0.78);
+    color: rgba(139, 115, 85, 0.72);
   }
 
   &__group + &__group {
-    margin-top: 12px;
-  }
-
-  &__group-head {
-    margin-bottom: 8px;
+    margin-top: var(--space-3, 12px);
   }
 
   &__group-title {
-    font-size: 12px;
+    display: block;
+    margin-bottom: var(--space-2, 8px);
+    font-size: 11px;
     font-weight: 600;
-    color: rgba(110, 82, 58, 0.8);
-    letter-spacing: 0.08em;
+    color: rgba(110, 82, 58, 0.72);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
   }
 
   &__row {
@@ -46,47 +45,7 @@
 
   &__chips {
     display: inline-flex;
-    gap: 8px;
-    padding-bottom: 4px;
-  }
-
-  &__chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 10px 14px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.96);
-    border: 1px solid rgba(139, 115, 85, 0.2);
-    box-shadow: 0 8px 20px rgba(62, 42, 30, 0.04);
-    flex-shrink: 0;
-
-    &--active {
-      background: var(--color-coffee-dark, #3e2a1e);
-      border-color: var(--color-coffee-dark, #3e2a1e);
-
-      .new-arrival-filter-bar__chip-text,
-      .new-arrival-filter-bar__chip-count {
-        color: #fff;
-      }
-    }
-  }
-
-  &__chip-text {
-    font-size: 13px;
-    font-weight: 600;
-    color: rgba(110, 82, 58, 0.9);
-  }
-
-  &__chip-count {
-    min-width: 18px;
-    height: 18px;
-    padding: 0 5px;
-    border-radius: 999px;
-    background: rgba(139, 115, 85, 0.1);
-    font-size: 11px;
-    line-height: 18px;
-    text-align: center;
-    color: rgba(110, 82, 58, 0.72);
+    gap: var(--space-2, 8px);
+    padding-bottom: var(--space-1, 4px);
   }
 }

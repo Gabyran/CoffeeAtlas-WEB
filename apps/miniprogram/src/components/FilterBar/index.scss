@@ -1,5 +1,5 @@
 .filter-bar {
-  padding: 0 var(--page-gutter) 12px;
+  padding: 0 var(--page-gutter, 16px) var(--space-3, 12px);
 
   &__row {
     white-space: nowrap;
@@ -8,41 +8,14 @@
   &__group {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    padding-bottom: 4px;
-  }
-
-  &__chip {
-    display: inline-flex;
-    align-items: center;
-    padding: 10px 14px;
-    background: rgba(255, 255, 255, 0.96);
-    border: 1px solid rgba(139, 115, 85, 0.2);
-    border-radius: var(--radius-pill, 999px);
-    box-shadow: 0 8px 20px rgba(62, 42, 30, 0.04);
-    flex-shrink: 0;
-
-    &--active {
-      background: var(--color-coffee-dark, #3e2a1e);
-      border-color: var(--color-coffee-dark, #3e2a1e);
-
-      .filter-bar__chip-text {
-        color: #fff;
-      }
-    }
-  }
-
-  &__chip-text {
-    color: rgba(139, 115, 85, 0.84);
-    font-size: 13px;
-    font-weight: 600;
-    white-space: nowrap;
+    gap: var(--space-2, 8px);
+    padding-bottom: var(--space-1, 4px);
   }
 
   &__divider {
     width: 1px;
     height: 20px;
-    margin: 0 4px;
+    margin: 0 var(--space-1, 4px);
     background: rgba(139, 115, 85, 0.15);
     flex-shrink: 0;
   }

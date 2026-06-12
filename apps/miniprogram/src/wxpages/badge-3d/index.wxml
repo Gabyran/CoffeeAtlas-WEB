@@ -1,0 +1,15 @@
+<view class="test-page">
+  <view class="test-page__header">
+    <text class="test-page__title">3D 徽章测试</text>
+    <text class="test-page__subtitle">badgeId: {{badgeId}}</text>
+  </view>
+  <view class="test-page__body">
+    <text class="test-page__status">页面加载成功 ✓</text>
+    <text class="test-page__url">{{modelUrl}}</text>
+  </view>
+  <view class="test-page__footer">
+    <view class="test-page__back" bindtap="handleBack">
+      <text class="test-page__back-text">← 返回</text>
+    </view>
+  </view>
+</view>
