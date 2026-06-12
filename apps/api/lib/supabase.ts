@@ -13,7 +13,7 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export const hasSupabaseBrowserEnv = Boolean(supabaseUrl && supabaseAnonKey);
-export const hasSupabaseServerEnv = true;
+export const hasSupabaseServerEnv = hasDatabaseEnv();
 
 export const supabaseBrowser = hasSupabaseBrowserEnv
   ? createClient(supabaseUrl!, supabaseAnonKey!)
@@ -55,7 +55,7 @@ function normalizeSelectColumns(columns: string | undefined): string {
   return topLevelColumns.length > 0 ? topLevelColumns.map((column) => quoteIdentifier(column)).join(', ') : '*';
 }
 
-function parseOrExpression(expression: string): string {
+function parseOrExpression(expression: string, params: unknown[]): string {
   const clauses = splitTopLevelComma(expression).map((part) => {
     const segments = part.split('.');
     const operatorIndex = segments.findIndex((segment) => ['eq', 'ilike', 'gt', 'gte', 'lt', 'lte'].includes(segment));
@@ -63,24 +63,28 @@ function parseOrExpression(expression: string): string {
       throw new HttpError(500, 'database_query_error', `Unsupported OR expression segment: ${part}`);
     }
 
-    const column = segments.slice(0, operatorIndex).join('.');
+    const column = quoteIdentifier(segments.slice(0, operatorIndex).join('.'));
     const operator = segments[operatorIndex];
     const value = segments.slice(operatorIndex + 1).join('.');
 
+    params.push(value);
+    const placeholder = `$${params.length}`;
+
     switch (operator) {
       case 'eq':
-        if (value === 'null') return `${quoteIdentifier(column)} is null`;
-        return `${quoteIdentifier(column)}::text = ${value === 'true' || value === 'false' ? value : `'${value.replace(/'/g, "''")}'`}`;
+        if (value === 'null') return `${column} is null`;
+        if (value === 'true' || value === 'false') return `${column}::text = ${value}`;
+        return `${column}::text = ${placeholder}`;
       case 'ilike':
-        return `${quoteIdentifier(column)}::text ilike '${value.replace(/'/g, "''")}' escape '\\'`;
+        return `${column}::text ilike ${placeholder} escape '\\'`;
       case 'gte':
-        return `${quoteIdentifier(column)} >= '${value.replace(/'/g, "''")}'`;
+        return `${column} >= ${placeholder}`;
       case 'gt':
-        return `${quoteIdentifier(column)} > '${value.replace(/'/g, "''")}'`;
+        return `${column} > ${placeholder}`;
       case 'lt':
-        return `${quoteIdentifier(column)} < '${value.replace(/'/g, "''")}'`;
+        return `${column} < ${placeholder}`;
       case 'lte':
-        return `${quoteIdentifier(column)} <= '${value.replace(/'/g, "''")}'`;
+        return `${column} <= ${placeholder}`;
       default:
         throw new HttpError(500, 'database_query_error', `Unsupported OR operator: ${operator}`);
     }
@@ -103,6 +107,9 @@ class RpcQuery {
     fnName: string,
     args: Record<string, unknown>
   ) {
+    if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(fnName)) {
+      throw new HttpError(500, 'database_query_error', `Invalid RPC function name: ${fnName}`);
+    }
     this.fnName = fnName;
     this.args = args;
   }
@@ -186,7 +193,7 @@ class TableQuery {
   }
 
   or(expression: string) {
-    this.builder.where(parseOrExpression(expression));
+    this.builder.where(parseOrExpression(expression, this.builder.params));
     return this;
   }
 
