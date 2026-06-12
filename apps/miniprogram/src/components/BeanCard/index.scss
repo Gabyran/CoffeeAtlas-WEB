@@ -1,152 +1,179 @@
 .bean-card {
   display: flex;
   flex-direction: column;
-  margin-bottom: 20px;
+  margin-bottom: var(--space-5, 20px);
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.96);
+  background: var(--color-card-bg, #fff);
   border: 1px solid rgba(107, 83, 68, 0.08);
-  border-radius: var(--radius-card-lg, 28px);
-  box-shadow: var(--shadow-card, 0 12px 30px rgba(62, 42, 30, 0.06));
-  animation: fade-in-up 0.45s ease forwards;
+  border-radius: var(--radius-2xl, 24px);
+  box-shadow: var(--shadow-md);
+  animation: fade-in-up 0.4s var(--smooth-easing) forwards;
   opacity: 0;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+  transition: transform var(--duration-normal, 200ms) var(--smooth-easing),
+    box-shadow var(--duration-normal, 200ms) var(--smooth-easing),
+    opacity var(--duration-normal, 200ms) var(--smooth-easing);
 
-  &__image {
+  &__media {
     position: relative;
     width: 100%;
-    padding-top: 100%;
+    padding-top: 88%;
     overflow: hidden;
     background: linear-gradient(180deg, rgba(245, 240, 232, 0.98), rgba(239, 231, 221, 0.92));
   }
 
-  &__img {
+  &__image {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
+    object-fit: cover;
   }
 
   &__placeholder {
     position: absolute;
-    top: 0;
-    left: 0;
+    inset: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 100%;
-    height: 100%;
   }
 
-  &__badge {
+  &__new-badge {
     position: absolute;
-    top: 12px;
-    left: 12px;
-    padding: 7px 12px;
-    color: var(--color-coffee-dark, #3e2a1e);
+    top: var(--space-3, 12px);
+    left: var(--space-3, 12px);
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: var(--radius-pill, 999px);
+    box-shadow: var(--shadow-sm);
+    backdrop-filter: blur(8px);
+  }
+
+  &__new-badge-text {
+    color: var(--color-accent-rust, #c85c3d);
     font-size: 11px;
     font-weight: 700;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    background: rgba(255, 255, 255, 0.92);
-    border-radius: var(--radius-pill, 999px);
-    box-shadow: 0 8px 20px rgba(62, 42, 30, 0.08);
+    letter-spacing: 0.12em;
   }
 
-  &__body {
+  &__content {
     display: flex;
     flex-direction: column;
     flex-grow: 1;
-    min-width: 0;
-    padding: 16px 18px 18px;
+    padding: var(--space-4, 16px) var(--space-5, 20px) var(--space-5, 20px);
+  }
+
+  &__header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1, 4px);
+    margin-bottom: var(--space-3, 12px);
+  }
+
+  &__roaster {
+    color: rgba(139, 115, 85, 0.88);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    line-height: 1.3;
+  }
+
+  &__name {
+    color: var(--color-coffee-dark, #3e2a1e);
+    font-family: var(--font-serif, Georgia, serif);
+    font-size: 17px;
+    font-weight: 600;
+    line-height: 1.35;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__origin {
+    color: rgba(89, 64, 49, 0.85);
+    font-size: 13px;
+    line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__detail {
+    color: rgba(107, 83, 68, 0.72);
+    font-size: 12px;
+    line-height: 1.4;
+    margin-bottom: var(--space-3, 12px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   &__meta {
     display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 12px;
+    flex-wrap: wrap;
+    gap: var(--space-2, 8px);
+    margin-bottom: var(--space-4, 16px);
+    padding-top: var(--space-3, 12px);
+    border-top: 1px solid rgba(107, 83, 68, 0.08);
   }
 
-  &__titles {
-    flex: 1;
-    min-width: 0;
-  }
-
-  &__line1,
-  &__line2 {
-    display: block;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-family: var(--font-serif, Georgia, serif);
-    color: var(--color-coffee-dark, #3e2a1e);
-  }
-
-  &__line1 {
-    font-size: 16px;
-    font-weight: 600;
-    line-height: 1.3;
-  }
-
-  &__line2 {
-    margin-top: 4px;
-    font-size: 15px;
-    line-height: 1.35;
-    color: rgba(62, 42, 30, 0.72);
-  }
-
-  &__tags {
+  &__process {
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
-    gap: 6px;
-    flex-shrink: 0;
+    gap: 2px;
   }
 
-  &__tag {
-    padding: 6px 10px;
-    color: #fff;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    border-radius: var(--radius-pill, 999px);
+  &__process-label {
+    color: rgba(139, 115, 85, 0.72);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
 
-    &--sales {
-      background: var(--color-accent-olive, #5a5a40);
-    }
-
-    &--price {
-      background: var(--color-accent-rust, #c85c3d);
-    }
+  &__process-value {
+    color: var(--color-coffee-dark, #3e2a1e);
+    font-size: 13px;
+    font-weight: 500;
   }
 
   &__footer {
     display: flex;
-    flex-direction: column;
-    gap: 4px;
-    margin-top: 16px;
-    padding-top: 12px;
-    border-top: 1px solid rgba(107, 83, 68, 0.1);
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3, 12px);
+    margin-top: auto;
   }
 
-  &__label {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: rgba(139, 115, 85, 0.88);
+  &__badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2, 8px);
   }
 
-  &__value {
-    font-size: 14px;
-    font-weight: 600;
+  &__price-section {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2, 8px);
+    flex-shrink: 0;
+  }
+
+  &__original-price {
+    color: rgba(139, 115, 85, 0.56);
+    font-size: 12px;
+    text-decoration: line-through;
+  }
+
+  &__price {
     color: var(--color-coffee-dark, #3e2a1e);
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
   }
 }
 
 .bean-card-active {
   opacity: 0.94;
-  transform: scale(0.98);
-  box-shadow: var(--shadow-card-hover, 0 18px 40px rgba(62, 42, 30, 0.1));
+  transform: scale(0.97);
+  box-shadow: var(--shadow-lg);
 }

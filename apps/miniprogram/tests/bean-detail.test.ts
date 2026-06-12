@@ -15,7 +15,7 @@ test('bean detail page enables share menu and uses the roaster detail link', () 
   assert.match(source, /openType="share"/);
   assert.match(source, /getRoasterById/);
   assert.match(source, /bean-detail__bottom-bar/);
-  assert.match(source, /bean-detail__roaster-card/);
+  assert.match(source, /bean-detail__roaster-section/);
   assert.match(source, /getBeanPurchaseUrl/);
 });
 
