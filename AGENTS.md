@@ -1,32 +1,3 @@
-<!-- TRELLIS:START -->
-# Trellis Instructions
-
-These instructions are for AI assistants working in this project.
-
-Use the `/trellis:start` command when starting a new session to:
-- Initialize your developer identity
-- Understand current project context
-- Read relevant guidelines
-
-Use `@/.trellis/` to learn:
-- Development workflow (`workflow.md`)
-- Project structure guidelines (`spec/`)
-- Developer workspace (`workspace/`)
-
-Keep this managed block so 'trellis update' can refresh the instructions.
-
-<!-- TRELLIS:END -->
-
-Codex note: Trellis command equivalents are available as local skills under `.agents/skills/` (for example `start`, `before-dev`, `check`, `finish-work`, `record-session`). 在 Codex 里更接近官方用法的入口是 `$start`；本仓库文档里写的 `/trellis:start` 表示同一类"开始会话"流程。
-
-另外，本仓库默认兼容用户当前 Codex 全局 skill（按 `Waza` 风格使用）：
-
-- 通用能力型 skill，如 `think`、`hunt`、`design`、`read`、`write`、`health`，默认复用全局 skill
-- 仓库内 `.agents/skills/` 主要负责 Trellis 流程和项目特有约束，不重复定义一套同名通用能力
-- `check` 在本仓库里默认表示"项目补充检查规则"；如果同时用了全局 `check`，应分别说明各自做了什么
-
----
-
 # CoffeeAtlas Project Guide for AI Agents
 
 > This file is the single source of truth for AI coding agents working on CoffeeAtlas. Read it before making any changes. All information below reflects the actual state of the repository.
@@ -366,4 +337,4 @@ test(scope): description
 chore(scope): description
 ```
 
-Common scopes: `web`, `miniprogram`, `api`, `packages`, `db`, `trellis`.
+Common scopes: `web`, `miniprogram`, `api`, `packages`, `db`.

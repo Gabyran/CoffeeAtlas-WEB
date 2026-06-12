@@ -19,7 +19,6 @@
 ## 已知问题 / 技术债务
 
 - `packages/domain` 仍为骨架状态，实际逻辑在 `apps/api/lib/catalog.ts`
-- 多个嵌套 CLAUDE.md 待迁移到 `.trellis/spec/`
 - `@coffee-atlas` 包名在部分旧文档中仍可能残留（已修复 3 个嵌套文件）
 
 ## 常用入口

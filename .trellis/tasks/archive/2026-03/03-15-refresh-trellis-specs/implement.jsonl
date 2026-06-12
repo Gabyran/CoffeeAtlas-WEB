@@ -1,6 +1,0 @@
-{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
-{"file": ".trellis/spec/frontend/index.md", "reason": "Current web frontend spec index"}
-{"file": ".trellis/spec/api/backend/index.md", "reason": "Current web backend spec index"}
-{"file": ".trellis/spec/miniprogram/frontend/index.md", "reason": "Current miniprogram frontend spec index"}
-{"file": ".agents/skills/start/SKILL.md", "reason": "Current Trellis start workflow"}
-{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Current finish-work checklist"}

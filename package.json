@@ -10,10 +10,6 @@
     "dev": "pnpm dev:miniprogram:auto",
     "dev:api": "pnpm --filter @coffeeatlas/api dev",
     "dev:miniprogram:auto": "node scripts/miniprogram-auto-repush.mjs",
-    "trellis:parallel:plan": "python3 ./.trellis/scripts/multi_agent/plan.py --platform codex",
-    "trellis:parallel:start": "python3 ./.trellis/scripts/multi_agent/start.py --platform codex",
-    "trellis:parallel:status": "python3 ./.trellis/scripts/multi_agent/status.py",
-    "trellis:parallel:cleanup": "python3 ./.trellis/scripts/multi_agent/cleanup.py",
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",
     "lint": "turbo run lint"

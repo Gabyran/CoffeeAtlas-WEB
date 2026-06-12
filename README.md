@@ -8,7 +8,6 @@ A pnpm monorepo for the CoffeeAtlas miniprogram, API backend, and shared contrac
 - `packages/shared-types`: shared API contracts
 - `packages/api-client`: shared client helpers used by the miniprogram
 - `packages/domain`: shared domain helpers
-- `.trellis`: project workflow and spec documents
 
 ## Quick Start
 1. Install dependencies

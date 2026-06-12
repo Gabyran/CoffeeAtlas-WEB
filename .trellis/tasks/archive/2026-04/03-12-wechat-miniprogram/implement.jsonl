@@ -1,4 +1,0 @@
-{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
-{"file": ".trellis/spec/api/backend/index.md", "reason": "Web backend development guide"}
-{"file": ".trellis/spec/miniprogram/frontend/index.md", "reason": "Miniprogram frontend development guide"}
-{"file": ".trellis/spec/api/backend/type-safety.md", "reason": "Cross-layer contract guide"}
