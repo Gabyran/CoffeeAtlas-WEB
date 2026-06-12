@@ -1,6 +1,6 @@
 import { Text, View } from '@tarojs/components';
-
 import BadgeIcon, { type BadgeIconName } from '../BadgeIcon';
+import { Badge, Progress, Separator } from '../ui';
 import './index.scss';
 
 export interface BadgeDetailData {
@@ -63,9 +63,9 @@ export default function BadgeDetailModal({ badge, isCelebration, onClose }: Badg
             </View>
           </View>
 
-          <View className={`badge-modal__status-badge ${badge.unlocked ? 'badge-modal__status-badge--unlocked' : ''}`}>
-            <Text className="badge-modal__status-text">{badge.unlocked ? '已解锁' : '解锁中'}</Text>
-          </View>
+          <Badge variant={badge.unlocked ? 'primary' : 'default'} size="md">
+            {badge.unlocked ? '已解锁' : '解锁中'}
+          </Badge>
         </View>
 
         {isCelebration ? <Text className="badge-modal__celebration-title">恭喜解锁新徽章！</Text> : null}
@@ -85,9 +85,7 @@ export default function BadgeDetailModal({ badge, isCelebration, onClose }: Badg
                 {Math.min(badge.currentValue, badge.targetValue)} / {badge.targetValue}
               </Text>
             </View>
-            <View className="badge-modal__progress-bar">
-              <View className="badge-modal__progress-bar-fill" style={{ width: `${progress}%` }} />
-            </View>
+            <Progress value={progress} className="badge-modal__progress-bar" />
             <View className="badge-modal__progress-item">
               <Text className="badge-modal__progress-label">完成度</Text>
               <Text className="badge-modal__progress-value">{progress}%</Text>
@@ -101,6 +99,8 @@ export default function BadgeDetailModal({ badge, isCelebration, onClose }: Badg
             <Text className="badge-modal__completed-text">已完成</Text>
           </View>
         )}
+
+        <Separator className="badge-modal__separator" />
 
         <View className="badge-modal__actions">
           <View className="badge-modal__close-btn" onClick={onClose}>

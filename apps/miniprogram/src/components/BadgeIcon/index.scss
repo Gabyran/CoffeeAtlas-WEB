@@ -1,8 +1,8 @@
 .badge-icon-ring {
-  transition: transform 0.2s var(--spring-easing), box-shadow 0.2s ease;
+  transition: transform 200ms ease, box-shadow 200ms ease;
 
   &--unlocked {
-    animation: badge-ring-glow 0.6s ease-out;
+    animation: badge-ring-glow 600ms ease-out;
   }
 }
 
@@ -14,11 +14,11 @@
 
   50% {
     transform: scale(1.05);
-    box-shadow: 0 0 20rpx 8rpx rgba(200, 92, 61, 0.2);
+    box-shadow: 0 0 10px 4px rgba(200, 92, 61, 0.2);
   }
 
   100% {
     transform: scale(1);
-    box-shadow: 0 8rpx 16rpx rgba(200, 92, 61, 0.18);
+    box-shadow: 0 4px 8px rgba(200, 92, 61, 0.18);
   }
 }

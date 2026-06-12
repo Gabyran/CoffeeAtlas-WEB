@@ -1,5 +1,5 @@
 import { ScrollView, Text, View } from '@tarojs/components';
-
+import { Chip } from '../ui';
 import type { NewArrivalFilterOption, NewArrivalFiltersMode } from '../../types';
 import './index.scss';
 
@@ -43,25 +43,20 @@ function FilterGroup({
 
   return (
     <View className="new-arrival-filter-bar__group">
-      <View className="new-arrival-filter-bar__group-head">
-        <Text className="new-arrival-filter-bar__group-title">{title}</Text>
-      </View>
+      <Text className="new-arrival-filter-bar__group-title">{title}</Text>
       <ScrollView scrollX className="new-arrival-filter-bar__row">
         <View className="new-arrival-filter-bar__chips">
           {options.map((option) => {
             const active = selectedValue === option.id;
-
             return (
-              <View
+              <Chip
                 key={option.id}
-                className={`new-arrival-filter-bar__chip ${
-                  active ? 'new-arrival-filter-bar__chip--active' : ''
-                }`}
+                variant={active ? 'active' : 'default'}
+                count={option.count}
                 onClick={() => onChange(active ? '' : option.id)}
               >
-                <Text className="new-arrival-filter-bar__chip-text">{option.label}</Text>
-                <Text className="new-arrival-filter-bar__chip-count">{option.count}</Text>
-              </View>
+                {option.label}
+              </Chip>
             );
           })}
         </View>
@@ -89,24 +84,9 @@ export default function NewArrivalFilterBar({
         <Text className="new-arrival-filter-bar__meta">{getModeLabel(mode)}</Text>
       </View>
 
-      <FilterGroup
-        title="烘焙商"
-        options={roasterOptions}
-        selectedValue={selectedRoasterId}
-        onChange={onRoasterChange}
-      />
-      <FilterGroup
-        title="处理法"
-        options={processOptions}
-        selectedValue={selectedProcess}
-        onChange={onProcessChange}
-      />
-      <FilterGroup
-        title="产地"
-        options={originOptions}
-        selectedValue={selectedOriginCountry}
-        onChange={onOriginChange}
-      />
+      <FilterGroup title="烘焙商" options={roasterOptions} selectedValue={selectedRoasterId} onChange={onRoasterChange} />
+      <FilterGroup title="处理法" options={processOptions} selectedValue={selectedProcess} onChange={onProcessChange} />
+      <FilterGroup title="产地" options={originOptions} selectedValue={selectedOriginCountry} onChange={onOriginChange} />
     </View>
   );
 }

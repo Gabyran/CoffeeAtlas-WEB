@@ -1,20 +1,25 @@
-.search-bar {
+.ui-input {
   display: flex;
   align-items: center;
   height: 48px;
-  margin: 0 var(--page-gutter, 16px) var(--space-4, 16px);
   padding: 0 var(--space-4, 16px);
   background: var(--color-card-bg, #fff);
-  border: 1px solid rgba(107, 83, 68, 0.1);
+  border: 1px solid rgba(107, 83, 68, 0.12);
   border-radius: var(--radius-pill, 999px);
   box-shadow: var(--shadow-sm);
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+
+  &:focus-within {
+    border-color: rgba(200, 92, 61, 0.3);
+    box-shadow: 0 0 0 3px rgba(200, 92, 61, 0.08), var(--shadow-sm);
+  }
 
   &__icon {
     margin-right: var(--space-3, 12px);
     flex-shrink: 0;
   }
 
-  &__input {
+  &__field {
     flex: 1;
     height: 48px;
     font-size: 14px;

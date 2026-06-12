@@ -1,6 +1,6 @@
 import { Text, View } from '@tarojs/components';
-
 import BadgeIcon, { type BadgeIconName } from '../BadgeIcon';
+import { Badge, Progress, Separator } from '../ui';
 import './index.scss';
 
 export interface BadgeCardData {
@@ -33,9 +33,9 @@ export default function BadgeCard({ badge, onOpen, animationDelay = 0 }: BadgeCa
     >
       <View className="badge-card__top">
         <Text className="badge-card__index">{String(badge.index + 1).padStart(2, '0')}</Text>
-        <View className={`badge-card__status-pill ${badge.unlocked ? 'badge-card__status-pill--unlocked' : ''}`}>
-          <Text className="badge-card__status-text">{badge.unlocked ? '已入藏' : badge.progressLabel}</Text>
-        </View>
+        <Badge variant={badge.unlocked ? 'primary' : 'default'} size="sm">
+          {badge.unlocked ? '已入藏' : badge.progressLabel}
+        </Badge>
       </View>
 
       <View className="badge-card__icon-shell">
@@ -55,11 +55,9 @@ export default function BadgeCard({ badge, onOpen, animationDelay = 0 }: BadgeCa
         <Text className="badge-card__subtitle">{badge.subtitle}</Text>
       </View>
 
-      {!badge.unlocked && progress > 0 ? (
-        <View className="badge-card__progress-track">
-          <View className="badge-card__progress-fill" style={{ width: `${progress}%` }} />
-        </View>
-      ) : null}
+      {!badge.unlocked && progress > 0 ? <Progress value={progress} className="badge-card__progress" /> : null}
+
+      <Separator className="badge-card__separator" />
 
       <View className="badge-card__footer">
         <Text className="badge-card__rule-label">{badge.unlocked ? '馆藏说明' : '解锁条件'}</Text>

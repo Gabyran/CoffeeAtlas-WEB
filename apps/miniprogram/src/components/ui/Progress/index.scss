@@ -1,0 +1,13 @@
+.ui-progress {
+  height: 4px;
+  border-radius: var(--radius-pill, 999px);
+  background: rgba(107, 83, 68, 0.1);
+  overflow: hidden;
+
+  &__fill {
+    height: 100%;
+    border-radius: var(--radius-pill, 999px);
+    background: linear-gradient(90deg, #c85c3d, #e89a7f);
+    transition: width 600ms ease;
+  }
+}
