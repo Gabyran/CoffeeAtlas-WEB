@@ -152,208 +152,32 @@
 
   &__badge-record {
     margin: 22rpx 32rpx 0;
-    padding: 28rpx 26rpx;
+    padding: 32rpx 26rpx 24rpx;
     border-radius: 32rpx;
     background:
-      radial-gradient(circle at top right, rgba(216, 111, 76, 0.12), transparent 36%),
+      radial-gradient(circle at top right, rgba(216, 111, 76, 0.08), transparent 36%),
       rgba(255, 252, 247, 0.94);
     border: 1rpx solid rgba(107, 83, 68, 0.08);
     box-shadow: 0 18rpx 32rpx rgba(62, 42, 30, 0.04);
   }
 
-  &__badge-record-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20rpx;
-  }
-
-  &__badge-record-heading {
-    min-width: 0;
-  }
-
-  &__badge-record-eyebrow {
-    display: block;
-    font-size: 18rpx;
-    letter-spacing: 0.26em;
-    text-transform: uppercase;
-    color: rgba(139, 115, 85, 0.68);
-  }
-
   &__badge-record-title {
     display: block;
-    margin-top: 10rpx;
-    font-size: 32rpx;
+    font-size: 36rpx;
     font-weight: 700;
     color: var(--color-coffee-dark, #3E2A1E);
-  }
-
-  &__badge-record-summary {
-    display: inline-flex;
-    margin-top: 14rpx;
-    padding: 8rpx 16rpx;
-    border-radius: 999rpx;
-    background: rgba(78, 52, 46, 0.08);
-    font-size: 20rpx;
-    color: rgba(78, 52, 46, 0.8);
-  }
-
-  &__badge-record-icon {
-    width: 60rpx;
-    height: 60rpx;
-    border-radius: 50%;
-    background: rgba(245, 240, 232, 0.96);
-    border: 1rpx solid rgba(107, 83, 68, 0.08);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
-
-  &__badge-record-description {
-    display: block;
-    margin-top: 18rpx;
-    font-size: 24rpx;
-    line-height: 1.7;
-    color: rgba(88, 68, 53, 0.78);
+    margin-bottom: 20rpx;
   }
 
   &__badge-record-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 18rpx;
-  }
-
-  &__badge-groups {
     display: flex;
-    flex-direction: column;
-    gap: 24rpx;
-    margin-top: 24rpx;
-  }
+    overflow-x: auto;
+    gap: 32rpx;
+    padding: 16rpx 0 24rpx;
 
-  &__badge-group {
-    display: flex;
-    flex-direction: column;
-    gap: 16rpx;
-  }
-
-  &__badge-group-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16rpx;
-  }
-
-  &__badge-group-title {
-    font-size: 20rpx;
-    font-weight: 700;
-    letter-spacing: 0.24em;
-    text-transform: uppercase;
-    color: rgba(107, 83, 68, 0.78);
-  }
-
-  &__badge-group-summary {
-    padding: 8rpx 14rpx;
-    border-radius: 999rpx;
-    background: rgba(78, 52, 46, 0.08);
-    font-size: 18rpx;
-    color: rgba(107, 83, 68, 0.82);
-  }
-
-  &__badge-card {
-    min-width: 0;
-    padding: 20rpx 18rpx 18rpx;
-    border-radius: 24rpx;
-    border: 1rpx solid rgba(107, 83, 68, 0.08);
-    background: rgba(255, 255, 255, 0.8);
-    display: flex;
-    flex-direction: column;
-    gap: 14rpx;
-
-    &--unlocked {
-      background:
-        radial-gradient(circle at top, rgba(200, 92, 61, 0.14), transparent 44%),
-        linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(252, 245, 238, 0.96));
-      box-shadow: 0 16rpx 28rpx rgba(62, 42, 30, 0.06);
+    &::-webkit-scrollbar {
+      display: none;
     }
-
-    &--locked {
-      opacity: 0.9;
-    }
-  }
-
-  &__badge-card-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10rpx;
-  }
-
-  &__badge-card-ring {
-    width: 62rpx;
-    height: 62rpx;
-    flex-shrink: 0;
-    border-radius: 50%;
-    background: rgba(247, 241, 232, 0.98);
-    border: 1rpx solid rgba(107, 83, 68, 0.08);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    .profile__badge-card--unlocked & {
-      background: linear-gradient(135deg, #c85c3d 0%, #8b5a43 100%);
-      border-color: transparent;
-      box-shadow: 0 12rpx 18rpx rgba(200, 92, 61, 0.2);
-    }
-  }
-
-  &__badge-card-status {
-    flex-shrink: 0;
-    padding: 8rpx 14rpx;
-    border-radius: 999rpx;
-    background: rgba(78, 52, 46, 0.08);
-    font-size: 18rpx;
-    color: rgba(107, 83, 68, 0.82);
-
-    &--unlocked {
-      background: rgba(200, 92, 61, 0.12);
-      color: var(--color-accent-rust, #c85c3d);
-    }
-  }
-
-  &__badge-card-copy {
-    display: flex;
-    flex-direction: column;
-    gap: 8rpx;
-    min-width: 0;
-  }
-
-  &__badge-card-title {
-    display: block;
-    font-size: 26rpx;
-    font-weight: 700;
-    color: var(--color-coffee-dark, #3E2A1E);
-    line-height: 1.3;
-  }
-
-  &__badge-card-subtitle {
-    display: block;
-    font-size: 18rpx;
-    line-height: 1.5;
-    color: rgba(107, 83, 68, 0.78);
-    min-height: 72rpx;
-  }
-
-  &__badge-card-footer {
-    padding-top: 8rpx;
-    border-top: 1rpx solid rgba(107, 83, 68, 0.08);
-  }
-
-  &__badge-card-detail {
-    display: block;
-    font-size: 18rpx;
-    line-height: 1.5;
-    color: rgba(139, 115, 85, 0.84);
   }
 
   &__badge-record-hint {

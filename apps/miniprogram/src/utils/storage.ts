@@ -468,3 +468,39 @@ export function setOnboardingProfile(profile: OnboardingProfile): void {
 export function clearOnboardingProfile(): void {
   removeStorageSync(ONBOARDING_PROFILE_KEY);
 }
+
+const BADGE_UNLOCK_DATES_KEY = 'badge_unlock_dates';
+
+export interface BadgeUnlockDates {
+  [badgeId: string]: string;
+}
+
+export function getBadgeUnlockDates(): BadgeUnlockDates {
+  try {
+    return getStorageSync<BadgeUnlockDates>(BADGE_UNLOCK_DATES_KEY) || {};
+  } catch {
+    return {};
+  }
+}
+
+export function setBadgeUnlockDate(badgeId: string, date: string): void {
+  try {
+    const dates = getBadgeUnlockDates();
+    dates[badgeId] = date;
+    setStorageSync(BADGE_UNLOCK_DATES_KEY, dates);
+  } catch {
+    // 测试环境或存储不可用时静默失败
+  }
+}
+
+export function getBadgeUnlockDate(badgeId: string): string | undefined {
+  return getBadgeUnlockDates()[badgeId];
+}
+
+export function formatUnlockDate(timestamp: number): string {
+  const date = new Date(timestamp);
+  const year = date.getFullYear().toString().slice(-2);
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const day = date.getDate().toString().padStart(2, '0');
+  return `${year}/${month}/${day}`;
+}

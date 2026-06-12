@@ -16,7 +16,7 @@ test('getProfileBadges keeps all badges locked for guests', () => {
 
   const loginBadge = badges.find((badge) => badge.id === 'visitor');
   assert.ok(loginBadge);
-  assert.equal(loginBadge.detail, '登录后即可解锁这枚徽章。');
+  assert.equal(loginBadge.detail, '登录后即可解锁这个成就。');
 });
 
 test('getProfileBadges unlocks the login badge for signed-in users', () => {

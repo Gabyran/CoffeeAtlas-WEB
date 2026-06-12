@@ -25,29 +25,29 @@ export function getBadgeRecordCopy({
 }: BadgeRecordCopyInput): BadgeRecordCopy {
   if (!loggedIn) {
     return {
-      eyebrow: 'BADGE RECORD',
-      title: '徽章记录',
-      description: '登录后就能开始点亮你的咖啡探索徽章。',
-      hint: '先解锁「入馆访客」，后面的探索记录会继续累积。',
+      eyebrow: 'ACHIEVEMENTS',
+      title: '成就',
+      description: '登录后就能开始解锁你的咖啡探索成就。',
+      hint: '先解锁「入馆访客」，后面的探索成就会继续累积。',
     };
   }
 
   if (unlockedCount >= totalCount) {
     return {
-      eyebrow: 'BADGE RECORD',
-      title: '徽章记录',
-      description: `已解锁 ${unlockedCount} / ${totalCount} 枚徽章，这一页已经被你点亮。`,
+      eyebrow: 'ACHIEVEMENTS',
+      title: '成就',
+      description: `已解锁 ${unlockedCount} / ${totalCount} 个成就，这一页已经被你点亮。`,
       hint:
         totalCount >= 14
-          ? '当前徽章已全部拿下，后续新增徽章会继续加入。'
-          : '首批徽章已全部拿下，后续新的探索徽章会继续加入。',
+          ? '当前成就已全部拿下，后续新增成就会继续加入。'
+          : '首批成就已全部拿下，后续新的探索成就会继续加入。',
     };
   }
 
   return {
-    eyebrow: 'BADGE RECORD',
-    title: '徽章记录',
-    description: `已解锁 ${unlockedCount} / ${totalCount} 枚徽章，继续把你的咖啡足迹补完整。`,
-    hint: nextBadge ? `下一枚是「${nextBadge.title}」：${nextBadge.detail}` : '继续收藏和浏览，新的徽章会逐步点亮。',
+    eyebrow: 'ACHIEVEMENTS',
+    title: '成就',
+    description: `已解锁 ${unlockedCount} / ${totalCount} 个成就，继续把你的咖啡足迹补完整。`,
+    hint: nextBadge ? `下一个是「${nextBadge.title}」：${nextBadge.detail}` : '继续收藏和浏览，新的成就会逐步点亮。',
   };
 }

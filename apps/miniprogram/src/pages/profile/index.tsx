@@ -211,6 +211,7 @@ function toBadgeCardData(badge: ProfileBadgeProgress, index: number): BadgeCardD
     progressLabel: badge.progressLabel,
     detail: badge.detail,
     index,
+    unlockedAt: badge.unlockedAt,
   };
 }
 
@@ -404,17 +405,6 @@ export default function Profile() {
     totalCount: badges.length,
     nextBadge: nextBadge ? { title: nextBadge.title, detail: nextBadge.detail } : undefined,
   });
-  const groupedBadges = BADGE_GROUPS.map((group) => {
-    const items = group.badgeIds
-      .map((badgeId) => badges.find((badge) => badge.id === badgeId) ?? null)
-      .filter((badge): badge is ProfileBadgeProgress => Boolean(badge));
-
-    return {
-      ...group,
-      badges: items,
-      unlockedCount: items.filter((badge) => badge.unlocked).length,
-    };
-  }).filter((group) => group.badges.length > 0);
 
   useEffect(() => {
     if (unlockedBadgeIds.length === 0) {
@@ -522,48 +512,22 @@ export default function Profile() {
       </View>
 
       <View className="profile__badge-record">
-        <View className="profile__badge-record-head">
-          <View className="profile__badge-record-heading">
-            <Text className="profile__badge-record-eyebrow">{badgeRecordCopy.eyebrow}</Text>
-            <Text className="profile__badge-record-title">{badgeRecordCopy.title}</Text>
-            <Text className="profile__badge-record-summary">{`已解锁 ${unlockedBadgeCount}/${badges.length}`}</Text>
-          </View>
+        <Text className="profile__badge-record-title">{badgeRecordCopy.title}</Text>
 
-          <View className="profile__badge-record-icon">
-            <Icon name="heart" size={18} color="rgba(78, 52, 46, 0.8)" />
-          </View>
+        <View className="profile__badge-record-grid">
+          {badges.map((badge, index) => {
+            const cardData = toBadgeCardData(badge, index);
+
+            return (
+              <BadgeCard
+                key={badge.id}
+                badge={cardData}
+                onOpen={handleOpenBadge}
+                animationDelay={index * 0.03}
+              />
+            );
+          })}
         </View>
-
-        <Text className="profile__badge-record-description">{badgeRecordCopy.description}</Text>
-
-        <View className="profile__badge-groups">
-          {groupedBadges.map((group) => (
-            <View key={group.id} className="profile__badge-group">
-              <View className="profile__badge-group-head">
-                <Text className="profile__badge-group-title">{group.title}</Text>
-                <Text className="profile__badge-group-summary">{`${group.unlockedCount}/${group.badges.length}`}</Text>
-              </View>
-
-              <View className="profile__badge-record-grid">
-                {group.badges.map((badge) => {
-                  const badgeIndex = badges.findIndex((item) => item.id === badge.id);
-                  const cardData = toBadgeCardData(badge, badgeIndex);
-
-                  return (
-                    <BadgeCard
-                      key={badge.id}
-                      badge={cardData}
-                      onOpen={handleOpenBadge}
-                      animationDelay={badgeIndex * 0.03}
-                    />
-                  );
-                })}
-              </View>
-            </View>
-          ))}
-        </View>
-
-        <Text className="profile__badge-record-hint">{badgeRecordCopy.hint}</Text>
       </View>
 
       <BadgeDetailModal badge={selectedBadgeDetail} isCelebration={isUnlockCelebration} onClose={handleCloseBadge} />
