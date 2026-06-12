@@ -68,16 +68,14 @@ Page({
       showHint: true
     })
 
-    var self = this
-
     // 隐藏操作提示
-    setTimeout(function () {
-      self.setData({ showHint: false })
+    setTimeout(() => {
+      this.setData({ showHint: false })
     }, 3000)
 
     // xr-frame 加载完成事件不易捕获，延迟隐藏 loading
-    setTimeout(function () {
-      self.setData({ loading: false })
+    setTimeout(() => {
+      this.setData({ loading: false })
     }, 2500)
   },
 
@@ -86,10 +84,9 @@ Page({
   },
 
   handleRetry: function () {
-    var self = this
     this.setData({ error: false, loading: true })
-    setTimeout(function () {
-      self.setData({ loading: false })
+    setTimeout(() => {
+      this.setData({ loading: false })
     }, 2500)
   }
 })

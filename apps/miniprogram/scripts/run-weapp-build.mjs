@@ -47,6 +47,9 @@ const DIST_INTEROP_REWRITES = [
 ];
 const isWatchMode = process.argv.includes('--watch');
 
+const NATIVE_SOURCE_DIRS = ['wxpages', 'wxcomponents'];
+const DIST_APP_JSON = path.join(ROOT, 'dist', 'app.json');
+
 function log(message) {
   console.log(`[weapp-build] ${message}`);
 }
