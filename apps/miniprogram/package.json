@@ -18,10 +18,10 @@
   },
   "dependencies": {
     "@babel/runtime": "^7.20.0",
-    "@supabase/postgrest-js": "^2.99.1",
     "@coffee-atlas/api-client": "workspace:*",
     "@coffee-atlas/domain": "workspace:*",
     "@coffee-atlas/shared-types": "workspace:*",
+    "@supabase/postgrest-js": "^2.99.1",
     "@supabase/supabase-js": "^2.57.0",
     "@tarojs/components": "3.6.30",
     "@tarojs/helper": "3.6.30",

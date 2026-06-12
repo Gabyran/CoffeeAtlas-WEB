@@ -67,8 +67,8 @@ async function main() {
   const parsed = parseArgs(process.argv.slice(2));
   const binding = await resolveBinding(parsed);
 
-  // 每店最多扫描 200 条，确保全量覆盖
-  process.env.TAOBAO_SYNC_MAX_ITEMS_PER_SHOP = '200';
+  // 每店最多扫描 200 条，确保全量覆盖（可通过环境变量覆盖）
+  process.env.TAOBAO_SYNC_MAX_ITEMS_PER_SHOP ??= '200';
 
   const preflight = await ensureTaobaoDesktopReady();
   const { summary, exitCode } = await runTaobaoDailySync(

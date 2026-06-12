@@ -1,5 +1,7 @@
 import { Image, View } from '@tarojs/components';
 
+import visitorSvg from '../../assets/badges/visitor.svg';
+
 import './index.scss';
 
 export type BadgeIconName =
@@ -17,6 +19,10 @@ export type BadgeIconName =
   | 'multi-roaster'
   | 'first-share'
   | 'serial-sharer';
+
+const STATIC_BADGE_SVGS: Partial<Record<BadgeIconName, string>> = {
+  visitor: visitorSvg,
+};
 
 const BADGE_ICON_PATHS: Record<BadgeIconName, string> = {
   visitor:
@@ -125,6 +131,47 @@ export default function BadgeIcon({
   showRing = false,
   progress = 0,
 }: BadgeIconProps) {
+  const staticSvg = STATIC_BADGE_SVGS[name];
+
+  if (staticSvg) {
+    if (showRing) {
+      return (
+        <View
+          className={`badge-icon-ring ${unlocked ? 'badge-icon-ring--unlocked' : ''} ${className}`}
+          style={{
+            width: `${size + 16}px`,
+            height: `${size + 16}px`,
+            borderRadius: '50%',
+            background: unlocked
+              ? 'linear-gradient(135deg, #c85c3d 0%, #8b5a43 100%)'
+              : 'rgba(247, 241, 232, 0.98)',
+            border: unlocked ? 'none' : '1px solid rgba(107, 83, 68, 0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: unlocked ? '0 8rpx 16rpx rgba(200, 92, 61, 0.18)' : 'none',
+            overflow: 'hidden',
+          }}
+        >
+          <Image
+            src={staticSvg}
+            style={{ width: `${size}px`, height: `${size}px`, display: 'block' }}
+            lazyLoad={false}
+          />
+        </View>
+      );
+    }
+
+    return (
+      <Image
+        src={staticSvg}
+        style={{ width: `${size}px`, height: `${size}px`, display: 'block', flexShrink: 0 }}
+        className={className}
+        lazyLoad={false}
+      />
+    );
+  }
+
   const paths = BADGE_ICON_PATHS[name] ?? BADGE_ICON_PATHS.visitor;
   const strokeColor = unlocked ? color : 'rgba(107,83,68,0.55)';
   const fillColor = unlocked ? color : 'rgba(107,83,68,0.35)';

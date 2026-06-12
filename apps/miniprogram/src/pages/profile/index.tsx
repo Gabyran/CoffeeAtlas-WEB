@@ -61,41 +61,6 @@ interface RoasterFavoriteEntry {
   favorite?: RoasterFavorite;
 }
 
-type BadgeGroupId = 'basics' | 'exploration' | 'knowledge' | 'purchase' | 'social';
-
-interface BadgeGroupDefinition {
-  id: BadgeGroupId;
-  title: string;
-  badgeIds: string[];
-}
-
-const BADGE_GROUPS: BadgeGroupDefinition[] = [
-  {
-    id: 'basics',
-    title: '入馆基础',
-    badgeIds: ['visitor', 'bean-starter', 'bean-collector'],
-  },
-  {
-    id: 'exploration',
-    title: '探索足迹',
-    badgeIds: ['roaster-radar', 'history-explorer', 'history-regular'],
-  },
-  {
-    id: 'knowledge',
-    title: '咖啡知识',
-    badgeIds: ['origin-scout', 'origin-atlas', 'process-nerd', 'variety-hunter'],
-  },
-  {
-    id: 'purchase',
-    title: '购买行为',
-    badgeIds: ['first-click', 'multi-roaster'],
-  },
-  {
-    id: 'social',
-    title: '社交分享',
-    badgeIds: ['first-share', 'serial-sharer'],
-  },
-];
 
 const BADGE_UNLOCK_SEEN_KEY = 'badge_unlock_seen';
 
@@ -224,6 +189,7 @@ function toBadgeDetailData(badge: ProfileBadgeProgress): BadgeDetailData {
     currentValue: badge.currentValue,
     targetValue: badge.targetValue,
     detail: badge.detail,
+    unlockedAt: badge.unlockedAt,
   };
 }
 
