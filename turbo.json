@@ -8,7 +8,7 @@
       "env": ["TARO_APP_API_URL"]
     },
     "typecheck": {
-      "dependsOn": ["^typecheck"],
+      "dependsOn": ["^build"],
       "outputs": []
     },
     "lint": {

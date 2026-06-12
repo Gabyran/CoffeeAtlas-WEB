@@ -2,7 +2,7 @@ import type { UserFavorite } from '@coffee-atlas/shared-types';
 
 import { getCatalogBeansByIds, getRoastersByIds } from '@/lib/catalog';
 import { buildAppUserUpsertRow } from './app-user-upsert.ts';
-import { execute, queryRow, queryRows } from './database.ts';
+import { execute, queryRow, queryRows, withTransaction } from './database.ts';
 import { mapBeanCard } from './public-beans.ts';
 import { mapRoasterSummary } from './public-api.ts';
 
@@ -154,12 +154,14 @@ export async function syncFavorites(
     return `($${base + 1}, $${base + 2}, $${base + 3})`;
   });
 
-  await execute(
-    `insert into public.user_favorites (user_id, target_type, target_id)
-     values ${placeholders.join(', ')}
-     on conflict (user_id, target_type, target_id) do update set
-       updated_at = now()`,
-    values
-  );
+  await withTransaction(async (client) => {
+    await client.query(
+      `insert into public.user_favorites (user_id, target_type, target_id)
+       values ${placeholders.join(', ')}
+       on conflict (user_id, target_type, target_id) do update set
+         updated_at = now()`,
+      values
+    );
+  });
   return getFavorites(userId);
 }

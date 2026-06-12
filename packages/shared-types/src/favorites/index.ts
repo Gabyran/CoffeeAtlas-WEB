@@ -1,7 +1,7 @@
 import type { CatalogBeanCard } from '../catalog/index.js';
 import type { RoasterSummary } from '../roasters/index.js';
 
-export interface FavoriteRecordBase {
+interface FavoriteRecordBase {
   id: string;
   user_id: string;
   target_id: string;
