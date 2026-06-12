@@ -16,6 +16,10 @@ const PREBUNDLE_SOURCE_PATCH_FILES = [
   'react_jsx-runtime.js',
   '@tarojs_taro.js',
 ];
+const DIST_PROJECT_CONFIG_FILES = [
+  'project.config.json',
+  'project.private.config.json',
+];
 const DIST_INTEROP_FILES = [
   'node_modules_taro_weapp_prebundle_react_js.js',
   'node_modules_taro_weapp_prebundle_react_jsx-runtime_js.js',
@@ -163,6 +167,44 @@ async function patchDistInteropFiles() {
   return patchedCount;
 }
 
+async function patchDistProjectConfigFiles() {
+  let patchedCount = 0;
+
+  for (const fileName of DIST_PROJECT_CONFIG_FILES) {
+    const filePath = path.join(ROOT, 'dist', fileName);
+
+    try {
+      const source = await fs.readFile(filePath, 'utf8');
+      const config = JSON.parse(source);
+      const nextConfig = {
+        ...config,
+        setting:
+          typeof config.setting === 'object' && config.setting !== null
+            ? {
+                ...config.setting,
+                urlCheck: false,
+              }
+            : config.setting,
+      };
+      const patched = `${JSON.stringify(nextConfig, null, 2)}\n`;
+
+      if (patched === source) {
+        continue;
+      }
+
+      await fs.writeFile(filePath, patched, 'utf8');
+      patchedCount += 1;
+    } catch (error) {
+      if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  return patchedCount;
+}
+
 function runCommand(command, args, options = {}) {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
@@ -192,14 +234,17 @@ async function runWatchMode() {
 
     syncing = true;
     try {
-      const [sourcePatchedCount, copiedCount, patchedCount] = await Promise.all([
+      const [sourcePatchedCount, copiedCount, patchedCount, configPatchedCount] = await Promise.all([
         patchPrebundleSourceFiles(),
         syncPrebundleFiles(),
         patchDistInteropFiles(),
+        patchDistProjectConfigFiles(),
       ]);
 
-      if (sourcePatchedCount > 0 || copiedCount > 0 || patchedCount > 0) {
-        log(`已修正 ${sourcePatchedCount} 个源包装文件，同步 ${copiedCount} 个 prebundle 文件，并修正 ${patchedCount} 个构建包装文件`);
+      if (sourcePatchedCount > 0 || copiedCount > 0 || patchedCount > 0 || configPatchedCount > 0) {
+        log(
+          `已修正 ${sourcePatchedCount} 个源包装文件，同步 ${copiedCount} 个 prebundle 文件，并修正 ${patchedCount + configPatchedCount} 个构建包装/配置文件`
+        );
       }
     } finally {
       syncing = false;
@@ -255,12 +300,15 @@ async function main() {
   }
 
   await runCommand('pnpm', ['exec', 'taro', 'build', '--type', 'weapp']);
-  const [sourcePatchedCount, copiedCount, patchedCount] = await Promise.all([
+  const [sourcePatchedCount, copiedCount, patchedCount, configPatchedCount] = await Promise.all([
     patchPrebundleSourceFiles(),
     syncPrebundleFiles(),
     patchDistInteropFiles(),
+    patchDistProjectConfigFiles(),
   ]);
-  log(`构建完成，已修正 ${sourcePatchedCount} 个源包装文件，同步 ${copiedCount} 个 prebundle 文件，并修正 ${patchedCount} 个构建包装文件`);
+  log(
+    `构建完成，已修正 ${sourcePatchedCount} 个源包装文件，同步 ${copiedCount} 个 prebundle 文件，并修正 ${patchedCount + configPatchedCount} 个构建包装/配置文件`
+  );
 }
 
 await main();

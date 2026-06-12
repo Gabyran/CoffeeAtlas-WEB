@@ -1,8 +1,8 @@
 import type { UserFavorite } from '@coffee-atlas/shared-types';
 
 import { getCatalogBeansByIds, getRoastersByIds } from '@/lib/catalog';
-import { requireSupabaseServiceRoleServer } from '@/lib/supabase';
 import { buildAppUserUpsertRow } from './app-user-upsert.ts';
+import { execute, queryRow, queryRows } from './database.ts';
 import { mapBeanCard } from './public-beans.ts';
 import { mapRoasterSummary } from './public-api.ts';
 
@@ -64,27 +64,46 @@ export async function upsertAppUser(params: {
   nickname?: string;
   avatarUrl?: string;
 }): Promise<AppUser> {
-  const db = requireSupabaseServiceRoleServer();
-  const { data, error } = await db
-    .from('app_users')
-    .upsert(buildAppUserUpsertRow(params), { onConflict: 'wechat_openid' })
-    .select()
-    .single();
+  const row = buildAppUserUpsertRow(params);
+  const user = await queryRow<AppUser>(
+    `insert into public.app_users (
+       wechat_openid,
+       wechat_unionid,
+       nickname,
+       avatar_url,
+       last_login_at
+     )
+     values ($1, $2, $3, $4, $5)
+     on conflict (wechat_openid) do update set
+       wechat_unionid = coalesce(excluded.wechat_unionid, public.app_users.wechat_unionid),
+       nickname = coalesce(excluded.nickname, public.app_users.nickname),
+       avatar_url = coalesce(excluded.avatar_url, public.app_users.avatar_url),
+       last_login_at = excluded.last_login_at
+     returning id, wechat_openid, wechat_unionid, nickname, avatar_url, last_login_at, created_at, updated_at`,
+    [
+      row.wechat_openid,
+      row.wechat_unionid ?? null,
+      row.nickname ?? null,
+      row.avatar_url ?? null,
+      row.last_login_at,
+    ]
+  );
 
-  if (error) throw error;
-  return data as AppUser;
+  if (!user) {
+    throw new Error('failed_to_upsert_app_user');
+  }
+  return user;
 }
 
 export async function getFavorites(userId: string): Promise<UserFavorite[]> {
-  const db = requireSupabaseServiceRoleServer();
-  const { data, error } = await db
-    .from('user_favorites')
-    .select('id, user_id, target_type, target_id, created_at')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false });
-
-  if (error) throw error;
-  return hydrateFavorites((data ?? []) as UserFavoriteRow[]);
+  const rows = await queryRows<UserFavoriteRow>(
+    `select id, user_id, target_type, target_id, created_at
+     from public.user_favorites
+     where user_id = $1
+     order by created_at desc`,
+    [userId]
+  );
+  return hydrateFavorites(rows);
 }
 
 export async function addFavorite(
@@ -92,19 +111,22 @@ export async function addFavorite(
   targetType: 'bean' | 'roaster',
   targetId: string
 ): Promise<UserFavorite> {
-  const db = requireSupabaseServiceRoleServer();
-  const { data, error } = await db
-    .from('user_favorites')
-    .upsert(
-      { user_id: userId, target_type: targetType, target_id: targetId },
-      { onConflict: 'user_id,target_type,target_id' }
-    )
-    .select()
-    .single();
+  const favorite = await queryRow<UserFavoriteRow>(
+    `insert into public.user_favorites (
+       user_id,
+       target_type,
+       target_id
+     )
+     values ($1, $2, $3)
+     on conflict (user_id, target_type, target_id) do update set
+       updated_at = now()
+     returning id, user_id, target_type, target_id, created_at`,
+    [userId, targetType, targetId]
+  );
 
-  if (error) throw error;
-  const [favorite] = await hydrateFavorites([data as UserFavoriteRow]);
-  return favorite;
+  if (!favorite) throw new Error('failed_to_add_favorite');
+  const [hydrated] = await hydrateFavorites([favorite]);
+  return hydrated;
 }
 
 export async function removeFavorite(
@@ -112,15 +134,11 @@ export async function removeFavorite(
   targetType: 'bean' | 'roaster',
   targetId: string
 ): Promise<void> {
-  const db = requireSupabaseServiceRoleServer();
-  const { error } = await db
-    .from('user_favorites')
-    .delete()
-    .eq('user_id', userId)
-    .eq('target_type', targetType)
-    .eq('target_id', targetId);
-
-  if (error) throw error;
+  await execute(
+    `delete from public.user_favorites
+     where user_id = $1 and target_type = $2 and target_id = $3`,
+    [userId, targetType, targetId]
+  );
 }
 
 export async function syncFavorites(
@@ -129,17 +147,19 @@ export async function syncFavorites(
 ): Promise<UserFavorite[]> {
   if (items.length === 0) return getFavorites(userId);
 
-  const db = requireSupabaseServiceRoleServer();
-  const rows = items.map((item) => ({
-    user_id: userId,
-    target_type: item.targetType,
-    target_id: item.targetId,
-  }));
+  const values: unknown[] = [];
+  const placeholders = items.map((item, index) => {
+    const base = index * 3;
+    values.push(userId, item.targetType, item.targetId);
+    return `($${base + 1}, $${base + 2}, $${base + 3})`;
+  });
 
-  const { error } = await db
-    .from('user_favorites')
-    .upsert(rows, { onConflict: 'user_id,target_type,target_id' });
-
-  if (error) throw error;
+  await execute(
+    `insert into public.user_favorites (user_id, target_type, target_id)
+     values ${placeholders.join(', ')}
+     on conflict (user_id, target_type, target_id) do update set
+       updated_at = now()`,
+    values
+  );
   return getFavorites(userId);
 }

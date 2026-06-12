@@ -16,6 +16,11 @@ export interface ApiBaseUrlState {
   warning: string | null;
 }
 
+export interface ResolveApiBaseUrlStateInput {
+  runtimeBaseUrl?: string | null;
+  buildBaseUrl?: string | null;
+}
+
 function getMode(baseUrl: string): ApiBaseUrlState['mode'] {
   if (!baseUrl) return 'unset';
 
@@ -54,17 +59,35 @@ function getWarning(baseUrl: string): string | null {
   return null;
 }
 
+export function resolveApiBaseUrlState({
+  runtimeBaseUrl,
+  buildBaseUrl,
+}: ResolveApiBaseUrlStateInput): ApiBaseUrlState {
+  const normalizedRuntimeBaseUrl = normalizeApiBaseUrl(runtimeBaseUrl);
+  const normalizedBuildBaseUrl = normalizeApiBaseUrl(buildBaseUrl);
+  const runtimeValidationError = normalizedRuntimeBaseUrl
+    ? getApiBaseUrlValidationError(normalizedRuntimeBaseUrl)
+    : null;
+  const useRuntimeBaseUrl = Boolean(normalizedRuntimeBaseUrl) && !runtimeValidationError;
+  const selectedBaseUrl = useRuntimeBaseUrl ? normalizedRuntimeBaseUrl : normalizedBuildBaseUrl;
+
+  return {
+    baseUrl: selectedBaseUrl,
+    source: useRuntimeBaseUrl ? 'runtime' : 'build',
+    mode: getMode(selectedBaseUrl),
+    warning: runtimeValidationError
+      ? `${runtimeValidationError} 已自动回退到编译配置。`
+      : getWarning(selectedBaseUrl),
+  };
+}
+
 export function getApiBaseUrlState(): ApiBaseUrlState {
   const runtimeBaseUrl = normalizeApiBaseUrl(getStorageSync<string>(API_BASE_URL_OVERRIDE_KEY));
   const buildBaseUrl = normalizeApiBaseUrl(getCompiledEnv('TARO_APP_API_URL'));
-  const baseUrl = runtimeBaseUrl || buildBaseUrl;
-
-  return {
-    baseUrl,
-    source: runtimeBaseUrl ? 'runtime' : 'build',
-    mode: getMode(baseUrl),
-    warning: getWarning(baseUrl),
-  };
+  return resolveApiBaseUrlState({
+    runtimeBaseUrl,
+    buildBaseUrl,
+  });
 }
 
 export function setApiBaseUrlOverride(url: string): ApiBaseUrlState {

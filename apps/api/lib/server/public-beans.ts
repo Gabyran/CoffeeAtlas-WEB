@@ -202,7 +202,7 @@ export async function queryBeanIdsFromView({
   const { data, error } = await query;
   if (error) throw error;
 
-  return (data ?? [])
+  return ((data ?? []) as CatalogViewIdRow[])
     .map((row) => (row as CatalogViewIdRow).roaster_bean_id)
     .filter((id): id is string => typeof id === 'string' && id.length > 0);
 }

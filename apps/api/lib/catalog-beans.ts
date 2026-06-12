@@ -128,9 +128,9 @@ export async function getCatalogBeansPage({
 
   const { data, error } = await query;
   if (error) throw createCatalogError(`failed_to_load_catalog_beans:${error.message}`);
-  if (!data || data.length === 0) return [];
+  const rows = (data ?? []) as ActiveCatalogRow[];
+  if (rows.length === 0) return [];
 
-  const rows = data as ActiveCatalogRow[];
   const latestNewArrivalIds = await getLatestSyncedNewArrivalBeanIdSet();
 
   return rows.map((row) => mapActiveCatalogBean(row, latestNewArrivalIds ?? undefined));
@@ -204,9 +204,9 @@ export async function getCatalogBeansByIds(ids: string[]): Promise<CoffeeBean[]>
     .in('roaster_bean_id', ids);
 
   if (error) throw createCatalogError(`failed_to_load_catalog_beans_by_ids:${error.message}`);
-  if (!data || data.length === 0) return [];
+  const rows = (data ?? []) as ActiveCatalogRow[];
+  if (rows.length === 0) return [];
 
-  const rows = data as ActiveCatalogRow[];
   const latestNewArrivalIds = await getLatestSyncedNewArrivalBeanIdSet();
   const beanMap = new Map(
     rows.map((row) => [

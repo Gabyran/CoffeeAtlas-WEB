@@ -1,6 +1,7 @@
 import type { PublishStatus } from '@/lib/types';
 
 import { requireSupabaseServiceRoleServer } from '@/lib/supabase';
+import { queryRow, queryRows } from './database.ts';
 
 import {
   badRequest,
@@ -324,8 +325,12 @@ type AdminRoasterBeanListRow = {
   is_in_stock: boolean;
   created_at: string;
   updated_at: string;
-  roasters: { name: string } | null;
-  beans: { canonical_name: string; origin_country: string | null; origin_region: string | null; process_method: string | null; variety: string | null } | null;
+  roaster_name: string | null;
+  bean_name: string | null;
+  bean_origin_country: string | null;
+  bean_origin_region: string | null;
+  bean_process_method: string | null;
+  bean_variety: string | null;
 };
 
 export type AdminRoasterBeanListItem = {
@@ -366,46 +371,82 @@ export async function listAdminRoasterBeans({
   page: number;
   pageSize: number;
 }) {
-  const supabaseServer = requireSupabaseServiceRoleServer();
   const offset = (page - 1) * pageSize;
 
-  let query = supabaseServer
-    .from('roaster_beans')
-    .select(
-      'id, roaster_id, bean_id, source_id, display_name, roast_level, price_amount, price_currency, weight_grams, product_url, image_url, source_item_id, source_sku_id, status, is_in_stock, created_at, updated_at, roasters(name), beans(canonical_name, origin_country, origin_region, process_method, variety)',
-      { count: 'exact' }
-    )
-    .order('updated_at', { ascending: false })
-    .range(offset, offset + pageSize - 1);
+  const whereParts: string[] = [];
+  const params: unknown[] = [];
+  const addParam = (value: unknown) => {
+    params.push(value);
+    return `$${params.length}`;
+  };
 
   if (status) {
-    query = query.eq('status', status);
+    whereParts.push(`rb.status = ${addParam(status)}`);
   }
   if (roasterId) {
-    query = query.eq('roaster_id', roasterId);
+    whereParts.push(`rb.roaster_id = ${addParam(roasterId)}`);
   }
   if (q) {
     const sanitized = sanitizeSearchTerm(normalizeString(q));
     if (sanitized) {
       const wildcard = wildcardQuery(sanitized);
-      query = query.or(`display_name.ilike.${wildcard},source_item_id.ilike.${wildcard}`);
+      const placeholder = addParam(wildcard);
+      whereParts.push(`(rb.display_name ilike ${placeholder} escape '\\' or rb.source_item_id ilike ${placeholder} escape '\\')`);
     }
   }
 
-  const { data, error, count } = await query;
-  if (error) throw error;
+  const whereSql = whereParts.length > 0 ? ` where ${whereParts.join(' and ')}` : '';
+  const countRow = await queryRow<{ count: number }>(
+    `select count(*)::int as count
+     from public.roaster_beans rb
+     left join public.roasters r on r.id = rb.roaster_id
+     left join public.beans b on b.id = rb.bean_id${whereSql}`,
+    params
+  );
+  const rows = await queryRows<AdminRoasterBeanListRow>(
+    `select
+       rb.id,
+       rb.roaster_id,
+       rb.bean_id,
+       rb.source_id,
+       rb.display_name,
+       rb.roast_level,
+       rb.price_amount,
+       rb.price_currency,
+       rb.weight_grams,
+       rb.product_url,
+       rb.image_url,
+       rb.source_item_id,
+       rb.source_sku_id,
+       rb.status,
+       rb.is_in_stock,
+       rb.created_at,
+       rb.updated_at,
+       r.name as roaster_name,
+       b.canonical_name as bean_name,
+       b.origin_country as bean_origin_country,
+       b.origin_region as bean_origin_region,
+       b.process_method as bean_process_method,
+       b.variety as bean_variety
+     from public.roaster_beans rb
+     left join public.roasters r on r.id = rb.roaster_id
+     left join public.beans b on b.id = rb.bean_id${whereSql}
+     order by rb.updated_at desc
+     limit $${params.length + 1}
+     offset $${params.length + 2}`,
+    [...params, pageSize, offset]
+  );
 
-  const rows = (data ?? []) as unknown as AdminRoasterBeanListRow[];
   const items: AdminRoasterBeanListItem[] = rows.map((row) => ({
     id: row.id,
     roasterId: row.roaster_id,
-    roasterName: row.roasters?.name ?? '',
+    roasterName: row.roaster_name ?? '',
     beanId: row.bean_id,
-    beanName: row.beans?.canonical_name ?? '',
-    originCountry: row.beans?.origin_country ?? null,
-    originRegion: row.beans?.origin_region ?? null,
-    processMethod: row.beans?.process_method ?? null,
-    variety: row.beans?.variety ?? null,
+    beanName: row.bean_name ?? '',
+    originCountry: row.bean_origin_country ?? null,
+    originRegion: row.bean_origin_region ?? null,
+    processMethod: row.bean_process_method ?? null,
+    variety: row.bean_variety ?? null,
     displayName: row.display_name,
     roastLevel: row.roast_level,
     priceAmount: row.price_amount,
@@ -423,7 +464,7 @@ export async function listAdminRoasterBeans({
 
   return {
     items,
-    total: count ?? 0,
+    total: countRow?.count ?? 0,
     page,
     pageSize,
   };

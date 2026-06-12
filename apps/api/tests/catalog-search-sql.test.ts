@@ -5,6 +5,7 @@ import test from 'node:test';
 const BASELINE_SQL = '../db/sql/040_views_and_functions.sql';
 const SETUP_SQL = '../db/setup.sql';
 const MIGRATION_SQL = '../db/migrations/005_search_catalog_matches_helper.sql';
+const CATALOG_ACTIVE_RUNTIME_FIELDS_MIGRATION_SQL = '../db/migrations/007_catalog_active_runtime_fields.sql';
 const SQL_PATHS = [BASELINE_SQL, SETUP_SQL, MIGRATION_SQL] as const;
 
 function loadSql(relativePath: string): string {
@@ -56,6 +57,39 @@ function normalizeSqlFragment(input: string): string {
     .replace(/\s+/g, ' ')
     .trim()
     .toLowerCase();
+}
+
+function extractViewBlock(sql: string, viewName: string): string {
+  const escaped = viewName.replace('.', '\\.');
+  const pattern = new RegExp(
+    `create\\s+or\\s+replace\\s+view\\s+${escaped}\\s+as\\s+select[\\s\\S]*?;`,
+    'i'
+  );
+  const match = sql.match(pattern);
+  assert.ok(match, `Missing view definition: ${viewName}`);
+  return match[0];
+}
+
+function assertCatalogActiveRuntimeFields(relativePath: string): void {
+  const viewBlock = extractViewBlock(loadSql(relativePath), 'public.v_catalog_active');
+  const normalizedView = normalizeSqlFragment(viewBlock);
+
+  assert.match(normalizedView, /\bb\.farm\b/, `${relativePath} must expose v_catalog_active.farm`);
+  assert.match(normalizedView, /\bb\.producer\b/, `${relativePath} must expose v_catalog_active.producer`);
+  assert.match(normalizedView, /\brb\.sales_count\b/, `${relativePath} must expose v_catalog_active.sales_count`);
+}
+
+function assertCatalogActiveRuntimeFieldsMigration(relativePath: string): void {
+  const normalizedSql = normalizeSqlFragment(loadSql(relativePath));
+
+  assert.match(normalizedSql, /\('farm',\s*'b\.farm'\)/, `${relativePath} must map v_catalog_active.farm`);
+  assert.match(normalizedSql, /\('producer',\s*'b\.producer'\)/, `${relativePath} must map v_catalog_active.producer`);
+  assert.match(normalizedSql, /\('sales_count',\s*'rb\.sales_count'\)/, `${relativePath} must map v_catalog_active.sales_count`);
+  assert.match(
+    normalizedSql,
+    /column_expr\.column_name\s+in\s+\('farm',\s*'producer',\s*'sales_count'\)/,
+    `${relativePath} must append missing runtime fields to existing views`
+  );
 }
 
 function assertDelegatesToMatchesHelper(block: string, functionName: string): void {
@@ -153,4 +187,10 @@ test('search SQL structure guard: migration SQL defines shared helper and delega
 
 test('search SQL structure guard: helper definition stays aligned across baseline/setup/migration', () => {
   assertHelperDefinitionConsistent();
+});
+
+test('catalog active view exposes fields used by API runtime sort and hydration', () => {
+  assertCatalogActiveRuntimeFields(BASELINE_SQL);
+  assertCatalogActiveRuntimeFields(SETUP_SQL);
+  assertCatalogActiveRuntimeFieldsMigration(CATALOG_ACTIVE_RUNTIME_FIELDS_MIGRATION_SQL);
 });

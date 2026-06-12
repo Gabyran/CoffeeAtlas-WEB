@@ -1,4 +1,9 @@
 const PLACEHOLDER_PATTERN = /YOUR_LAN_IP|your-domain\.com/i;
+const LOOPBACK_IPV4_PATTERN = /^127(?:\.\d{1,3}){3}$/;
+
+export function isLoopbackHostname(hostname: string): boolean {
+  return hostname === 'localhost' || LOOPBACK_IPV4_PATTERN.test(hostname);
+}
 
 export function normalizeApiBaseUrl(url: string | null | undefined): string {
   return (url ?? '')
@@ -33,6 +38,10 @@ export function getApiBaseUrlValidationError(url: string): string | null {
   }
 
   const hostname = getApiBaseUrlHostname(normalized);
+
+  if (isLoopbackHostname(hostname)) {
+    return '微信开发者工具里不能使用 localhost 或 127.0.0.1 作为 API 地址，请改成局域网 IP 或线上域名。';
+  }
 
   if (/vercel-app$/i.test(hostname) && !/\.vercel\.app$/i.test(hostname)) {
     return 'API 地址看起来写错了：你可能把 `.vercel.app` 写成了 `-vercel-app`。请改成类似 `https://你的项目.vercel.app`。';

@@ -4,7 +4,7 @@
   "description": "CoffeeAtlas Miniprogram",
   "appid": "wx54f2f9a3264a61d7",
   "setting": {
-    "urlCheck": true,
+    "urlCheck": false,
     "es6": false,
     "enhance": true,
     "postcss": false,

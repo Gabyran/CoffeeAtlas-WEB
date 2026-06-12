@@ -26,21 +26,22 @@ import { getApiBaseUrlValidationError } from '../utils/api-base-url.ts';
 import { buildApiRequestOptions } from '../utils/api-request.ts';
 import { formatApiRequestErrorMessage } from '../utils/api-error.ts';
 import { request as miniProgramRequest } from '../utils/miniprogram-api.ts';
-import { hasSupabaseEnv, requireSupabaseClient } from '../utils/supabase.ts';
-import { requireSupabaseCatalogRead } from './catalog-read-mode.ts';
-import {
-  getBeanDetailWithSupabase,
-  getBeanDiscoverWithSupabase,
-  getNewArrivalFiltersWithSupabase,
-  getRoasterDetailWithSupabase,
-  listBeansWithSupabase,
-  listRoastersWithSupabase,
-} from './catalog-supabase.ts';
 
 function getErrorMessage(error: unknown): string {
   return formatApiRequestErrorMessage(error, {
     baseUrl: getApiBaseUrlState().baseUrl,
   });
+}
+
+function buildQueryEndpoint(endpoint: string, params: Record<string, string | number | boolean | undefined>) {
+  const searchParams = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (typeof value === 'undefined') continue;
+    searchParams.set(key, String(value));
+  }
+
+  const query = searchParams.toString();
+  return query ? `${endpoint}?${query}` : endpoint;
 }
 
 export { getApiBaseUrlState } from '../utils/api-config.ts';
@@ -89,28 +90,67 @@ async function request<T>(
 
 // 咖啡豆
 export async function getBeans(params?: BeansQueryParams): Promise<PaginatedResult<CoffeeBean>> {
-  return listBeansWithSupabase(requireSupabaseCatalogRead(hasSupabaseEnv, requireSupabaseClient), params);
+  return request<PaginatedResult<CoffeeBean>>(
+    buildQueryEndpoint('/api/v1/beans', {
+      page: params?.page,
+      pageSize: params?.pageSize,
+      q: params?.q,
+      roasterId: params?.roasterId,
+      originCountry: params?.originCountry,
+      process: params?.process,
+      processBase: params?.processBase,
+      processStyle: params?.processStyle,
+      roastLevel: params?.roastLevel,
+      sort: params?.sort,
+      isNewArrival: params?.isNewArrival,
+      continent: params?.continent,
+      country: params?.country,
+    })
+  );
 }
 
 export async function getBeanDiscover(params?: BeanDiscoverQueryParams): Promise<BeanDiscoverPayload> {
-  return getBeanDiscoverWithSupabase(requireSupabaseCatalogRead(hasSupabaseEnv, requireSupabaseClient), params);
+  return request<BeanDiscoverPayload>(
+    buildQueryEndpoint('/api/v1/beans/discover', {
+      q: params?.q,
+      processBase: params?.processBase,
+      processStyle: params?.processStyle,
+      continent: params?.continent,
+      country: params?.country,
+    })
+  );
 }
 
 export async function getNewArrivalFilters(payload: NewArrivalFiltersRequest): Promise<NewArrivalFiltersPayload> {
-  return getNewArrivalFiltersWithSupabase(requireSupabaseCatalogRead(hasSupabaseEnv, requireSupabaseClient), payload);
+  return request<NewArrivalFiltersPayload>('/api/v1/beans/new-arrivals/filters', {
+    method: 'POST',
+    data: {
+      beanFavorites: payload.beanFavorites ?? [],
+      roasterFavorites: payload.roasterFavorites ?? [],
+    },
+  });
 }
 
 export async function getBeanById(id: string): Promise<BeanDetail> {
-  return getBeanDetailWithSupabase(requireSupabaseCatalogRead(hasSupabaseEnv, requireSupabaseClient), id);
+  return request<BeanDetail>(`/api/v1/beans/${id}`);
 }
 
 // 烘焙商
 export async function getRoasters(params?: RoastersQueryParams): Promise<PaginatedResult<RoasterSummary>> {
-  return listRoastersWithSupabase(requireSupabaseCatalogRead(hasSupabaseEnv, requireSupabaseClient), params);
+  return request<PaginatedResult<RoasterSummary>>(
+    buildQueryEndpoint('/api/v1/roasters', {
+      page: params?.page,
+      pageSize: params?.pageSize,
+      q: params?.q,
+      city: params?.city,
+      feature: params?.feature,
+      sort: params?.sort,
+    })
+  );
 }
 
 export async function getRoasterById(id: string): Promise<RoasterDetail> {
-  return getRoasterDetailWithSupabase(requireSupabaseCatalogRead(hasSupabaseEnv, requireSupabaseClient), id);
+  return request<RoasterDetail>(`/api/v1/roasters/${id}`);
 }
 
 export async function getBadgeProgress(): Promise<{ badgeIds: string[] }> {

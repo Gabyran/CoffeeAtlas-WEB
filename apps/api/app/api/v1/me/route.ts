@@ -1,20 +1,27 @@
 import { type NextRequest } from 'next/server';
 
-import { apiError, apiSuccess } from '@/lib/server/api-helpers';
+import { apiError, apiSuccess, notFound } from '@/lib/server/api-helpers';
 import { requireUser } from '@/lib/server/auth-user';
-import { requireSupabaseServiceRoleServer } from '@/lib/supabase';
+import { queryRow } from '@/lib/server/database';
 
 export async function GET(req: NextRequest) {
   try {
     const user = await requireUser(req);
-    const db = requireSupabaseServiceRoleServer();
-    const { data, error } = await db
-      .from('app_users')
-      .select('id, nickname, avatar_url, created_at')
-      .eq('id', user.id)
-      .single();
+    const data = await queryRow<{
+      id: string;
+      nickname: string | null;
+      avatar_url: string | null;
+      created_at: string;
+    }>(
+      `select id, nickname, avatar_url, created_at
+       from public.app_users
+       where id = $1`,
+      [user.id]
+    );
 
-    if (error) throw error;
+    if (!data) {
+      notFound('User not found', 'user_not_found');
+    }
 
     return apiSuccess({
       id: data.id,

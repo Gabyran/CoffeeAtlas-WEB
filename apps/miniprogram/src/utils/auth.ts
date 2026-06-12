@@ -70,20 +70,18 @@ async function withRetry<T>(
 }
 
 export async function login(userInfo?: { nickname?: string; avatarUrl?: string }): Promise<AuthUser> {
-  const { code } = await withRetry(() => miniProgramLogin(), {
-    operationName: '获取微信登录凭证',
-    maxRetries: 2,
-    delayMs: 800,
-  });
+  const { token, user } = await withRetry(async () => {
+    const { code } = await miniProgramLogin();
 
-  if (!code || code.length < 10) {
-    throw new AuthError('invalid_code', '微信登录凭证无效，请重新尝试');
-  }
+    if (!code || code.length < 10) {
+      throw new AuthError('invalid_code', '微信登录凭证无效，请重新尝试');
+    }
 
-  const { token, user } = await withRetry(() => wechatLogin(code, userInfo), {
-    operationName: '服务器登录',
+    return wechatLogin(code, userInfo);
+  }, {
+    operationName: '微信登录',
     maxRetries: 2,
-    delayMs: 1200,
+    delayMs: 1000,
   });
 
   if (!token || !user) {

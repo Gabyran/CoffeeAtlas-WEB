@@ -26,3 +26,10 @@ test('getApiBaseUrlValidationError accepts valid https cloud domain', () => {
     null
   );
 });
+
+test('getApiBaseUrlValidationError rejects localhost api base url', () => {
+  assert.equal(
+    getApiBaseUrlValidationError('http://localhost:3000'),
+    '微信开发者工具里不能使用 localhost 或 127.0.0.1 作为 API 地址，请改成局域网 IP 或线上域名。'
+  );
+});

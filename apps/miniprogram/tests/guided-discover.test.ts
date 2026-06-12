@@ -136,12 +136,11 @@ test('buildGuidedDiscoverStep starts from process base question', () => {
       selectedProcessStyle: 'all',
       selectedContinent: 'all',
       selectedCountry: 'all',
-      selectedVariety: 'all',
     }),
     {
       step: 'process_base',
-      title: '先告诉我你想从哪种基础处理法开始',
-      description: '我会先帮你定一个基础处理法方向，再继续收窄到处理风格和产地区域。',
+      title: '从选咖啡豆处理法开始',
+      description: '不同的处理带来不同的风格，\n根据喜好，缩小范围。',
     }
   );
 });
@@ -153,12 +152,11 @@ test('buildGuidedDiscoverStep moves to process style question after base is sele
       selectedProcessStyle: 'all',
       selectedContinent: 'all',
       selectedCountry: 'all',
-      selectedVariety: 'all',
     }),
     {
       step: 'process_style',
-      title: '第二步，再选一个处理风格',
-      description: '基础处理法已经定好了，现在继续缩小到更具体的处理风格。',
+      title: '接下来，选更细致的处理风格',
+      description: '传统或是厌氧发酵，风味层次也不一样。',
     }
   );
 });
@@ -170,58 +168,38 @@ test('buildGuidedDiscoverStep moves to continent question after style is selecte
       selectedProcessStyle: 'traditional',
       selectedContinent: 'all',
       selectedCountry: 'all',
-      selectedVariety: 'all',
     }),
     {
       step: 'continent',
-      title: '下一步，选一个更接近你期待风味的区域',
-      description: '处理风格已经定好了，现在再用大洲和国家把结果继续缩小。',
+      title: '最后，通过产区来选豆',
+      description: '风土、气候都决定着咖啡豆的糖分和香气。',
     }
   );
 });
 
-test('buildGuidedDiscoverStep moves to country question once continent is selected', () => {
+test('buildGuidedDiscoverStep finishes once continent is selected', () => {
   assert.deepEqual(
     buildGuidedDiscoverStep({
       selectedProcessBase: 'washed',
       selectedProcessStyle: 'traditional',
       selectedContinent: 'africa',
       selectedCountry: 'all',
-      selectedVariety: 'all',
     }),
     {
-      step: 'country',
-      title: '最后一步，再缩小到具体国家',
-      description: '大洲已经定好了，再选一个国家，就能直接看到更聚焦的豆单。',
+      step: 'done',
+      title: '已经帮你缩小到一条可直接浏览的路径',
+      description: '你可以直接往下看推荐和豆单，也可以重新回答一次，换一条路线。',
     }
   );
 });
 
-test('buildGuidedDiscoverStep moves to optional variety question once country is selected', () => {
+test('buildGuidedDiscoverStep finishes once country is selected', () => {
   assert.deepEqual(
     buildGuidedDiscoverStep({
       selectedProcessBase: 'washed',
       selectedProcessStyle: 'traditional',
-      selectedContinent: 'africa',
+      selectedContinent: 'all',
       selectedCountry: '埃塞俄比亚',
-      selectedVariety: 'all',
-    }),
-    {
-      step: 'variety',
-      title: '如果你已经有目标豆种，可以继续细分',
-      description: '这一步是可选的，不选也可以直接看结果。',
-    }
-  );
-});
-
-test('buildGuidedDiscoverStep finishes once variety is selected', () => {
-  assert.deepEqual(
-    buildGuidedDiscoverStep({
-      selectedProcessBase: 'washed',
-      selectedProcessStyle: 'traditional',
-      selectedContinent: 'africa',
-      selectedCountry: '埃塞俄比亚',
-      selectedVariety: '74110',
     }),
     {
       step: 'done',
@@ -232,7 +210,7 @@ test('buildGuidedDiscoverStep finishes once variety is selected', () => {
 });
 
 test('shouldExpandGuidedDiscoverCard keeps guided entry collapsed for now', () => {
-  assert.equal(shouldExpandGuidedDiscoverCard('guided'), false);
+  assert.equal(shouldExpandGuidedDiscoverCard('guided'), true);
 });
 
 test('shouldExpandGuidedDiscoverCard keeps direct entry collapsed by default', () => {

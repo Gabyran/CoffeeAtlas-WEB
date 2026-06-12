@@ -6,7 +6,6 @@ import type {
 
 import { getCatalogBeansByIds, getCatalogBeansPage } from '@/lib/catalog';
 import { getLatestSyncedNewArrivalBeanIds } from '@/lib/new-arrivals';
-import { hasSupabaseServerEnv } from '@/lib/supabase';
 
 import {
   buildNewArrivalFiltersPayload,
@@ -53,20 +52,10 @@ function mapFallbackBeanSeeds(
 }
 
 async function loadFallbackBeanSeeds(): Promise<NewArrivalBeanSeed[]> {
-  try {
-    if (hasSupabaseServerEnv) {
-      const ids = await getLatestSyncedNewArrivalBeanIds();
-      if (ids && ids.length > 0) {
-        return mapFallbackBeanSeeds(await getCatalogBeansByIds(ids));
-      }
-
-      return mapFallbackBeanSeeds(
-        await getCatalogBeansPage({
-          limit: 120,
-          offset: 0,
-        })
-      );
-    }
+  const ids = await getLatestSyncedNewArrivalBeanIds();
+  if (ids && ids.length > 0) {
+    return mapFallbackBeanSeeds(await getCatalogBeansByIds(ids));
+  }
 
     return mapFallbackBeanSeeds(
       await getCatalogBeansPage({
@@ -74,27 +63,17 @@ async function loadFallbackBeanSeeds(): Promise<NewArrivalBeanSeed[]> {
         offset: 0,
       })
     );
-  } catch {
-    return [];
-  }
 }
 
 async function resolveCloudFavorites(userId: string): Promise<{
   favoriteBeans: FavoriteBeanPreference[];
   favoriteRoasters: FavoriteRoasterPreference[];
 }> {
-  try {
-    const favorites = await getFavorites(userId);
-    return {
-      favoriteBeans: mapFavoriteBeans(favorites),
-      favoriteRoasters: mapFavoriteRoasters(favorites),
-    };
-  } catch {
-    return {
-      favoriteBeans: [],
-      favoriteRoasters: [],
-    };
-  }
+  const favorites = await getFavorites(userId);
+  return {
+    favoriteBeans: mapFavoriteBeans(favorites),
+    favoriteRoasters: mapFavoriteRoasters(favorites),
+  };
 }
 
 export async function getNewArrivalFiltersV1({

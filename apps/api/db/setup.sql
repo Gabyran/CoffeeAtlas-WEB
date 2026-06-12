@@ -488,6 +488,8 @@ select
   b.canonical_name as bean_name,
   b.origin_country,
   b.origin_region,
+  b.farm,
+  b.producer,
   b.process_method,
   b.process_method_raw,
   b.process_base,
@@ -497,6 +499,7 @@ select
   rb.roast_level,
   rb.price_amount,
   rb.price_currency,
+  rb.sales_count,
   rb.is_in_stock,
   rb.product_url,
   rb.image_url,
@@ -700,43 +703,6 @@ as $$
 $$;
 
 grant execute on function public.latest_synced_new_arrival_ids() to anon, authenticated;
-
--- ============================================================================
--- 7. Sample Data (Optional)
--- ============================================================================
-insert into public.sources (source_type, source_name, source_url) values
-  ('MANUAL', 'Admin Import', null),
-  ('OFFICIAL_SITE', 'Roaster Official Site', null)
-on conflict (source_type, source_name) do nothing;
-
--- Insert sample roaster
-insert into public.roasters (name, city, country_code, is_public) values
-  ('Manner Coffee', 'Shanghai', 'CN', true),
-  ('Seesaw Coffee', 'Shanghai', 'CN', true),
-  ('Metal Hands', 'Beijing', 'CN', true)
-on conflict (slug) do nothing;
-
--- Insert sample beans
-insert into public.beans (canonical_name, origin_country, origin_region, process_method, variety, flavor_tags) values
-  ('Ethiopia Yirgacheffe', 'Ethiopia', 'Yirgacheffe', 'Washed', 'Heirloom', array['jasmine', 'lemon', 'tea']),
-  ('Colombia Huila', 'Colombia', 'Huila', 'Washed', 'Caturra', array['caramel', 'orange', 'chocolate']),
-  ('Kenya AA', 'Kenya', 'Nyeri', 'Washed', 'SL28', array['blackcurrant', 'tomato', 'wine'])
-on conflict do nothing;
-
--- Insert sample roaster_beans (if roasters and beans exist)
-do $$
-declare
-  r_id uuid;
-  b_id uuid;
-begin
-  select id into r_id from public.roasters where name = 'Manner Coffee' limit 1;
-  select id into b_id from public.beans where canonical_name = 'Ethiopia Yirgacheffe' limit 1;
-  if r_id is not null and b_id is not null then
-    insert into public.roaster_beans (roaster_id, bean_id, display_name, roast_level, price_amount, price_currency, status, is_in_stock)
-    values (r_id, b_id, 'Manner Ethiopia Single Origin', 'Light', 128, 'CNY', 'ACTIVE', true)
-    on conflict (roaster_id, bean_id, display_name) do nothing;
-  end if;
-end $$;
 
 -- ============================================================================
 -- Complete!

@@ -28,6 +28,7 @@
     "lucide-react": "^0.575.0",
     "motion": "^12.34.3",
     "next": "^16.0.7",
+    "pg": "^8.16.3",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "tailwindcss": "^4.2.1",
@@ -40,6 +41,7 @@
     "dotenv": "^17.3.1",
     "eslint": "9.21.0",
     "eslint-config-next": "15.1.0",
-    "typescript": "5.8.2"
+    "typescript": "5.8.2",
+    "@types/pg": "^8.11.11"
   }
 }

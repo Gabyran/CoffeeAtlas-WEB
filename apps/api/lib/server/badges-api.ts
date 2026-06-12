@@ -1,5 +1,5 @@
 import { badRequest } from './api-primitives.ts';
-import { requireSupabaseServiceRoleServer } from '../supabase.ts';
+import { execute, queryRows } from './database.ts';
 
 interface UserBadgeProgressRow {
   badge_id: string;
@@ -32,36 +32,34 @@ export function normalizeBadgeIds(badgeIds: unknown): string[] {
 }
 
 export async function getBadgeIds(userId: string): Promise<string[]> {
-  const db = requireSupabaseServiceRoleServer();
-  const { data, error } = await db
-    .from('user_badge_progress')
-    .select('badge_id')
-    .eq('user_id', userId)
-    .order('unlocked_at', { ascending: true })
-    .order('badge_id', { ascending: true });
+  const rows = await queryRows<UserBadgeProgressRow>(
+    `select badge_id
+     from public.user_badge_progress
+     where user_id = $1
+     order by unlocked_at asc, badge_id asc`,
+    [userId]
+  );
 
-  if (error) throw error;
-  return ((data ?? []) as UserBadgeProgressRow[]).map((row) => row.badge_id);
+  return rows.map((row) => row.badge_id);
 }
 
 export async function syncBadgeIds(userId: string, badgeIds: string[]): Promise<number> {
   if (badgeIds.length === 0) return 0;
 
-  const db = requireSupabaseServiceRoleServer();
   const now = new Date().toISOString();
-  const rows = badgeIds.map((badgeId) => ({
-    user_id: userId,
-    badge_id: badgeId,
-    unlocked_at: now,
-  }));
+  const values: unknown[] = [];
+  const placeholders = badgeIds.map((badgeId, index) => {
+    const base = index * 3;
+    values.push(userId, badgeId, now);
+    return `($${base + 1}, $${base + 2}, $${base + 3})`;
+  });
 
-  const { error } = await db
-    .from('user_badge_progress')
-    .upsert(rows, {
-      onConflict: 'user_id,badge_id',
-      ignoreDuplicates: true,
-    });
+  await execute(
+    `insert into public.user_badge_progress (user_id, badge_id, unlocked_at)
+     values ${placeholders.join(', ')}
+     on conflict (user_id, badge_id) do nothing`,
+    values
+  );
 
-  if (error) throw error;
   return badgeIds.length;
 }

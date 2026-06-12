@@ -494,11 +494,7 @@ export function createBeanDiscoverService({
 }) {
   return {
     async getBeanDiscoverPayload(filters: BeanDiscoverFilters): Promise<BeanDiscoverPayload> {
-      try {
-        return await loadPrimaryPayload(filters);
-      } catch {
-        return loadFallbackPayload(filters);
-      }
+      return loadPrimaryPayload(filters);
     },
   };
 }

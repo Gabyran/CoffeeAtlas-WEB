@@ -203,7 +203,7 @@ test('createBeanDiscoverService returns primary payload when main path succeeds'
   assert.deepEqual(fallbackCalls, []);
 });
 
-test('createBeanDiscoverService returns fallback payload when main path throws', async () => {
+test('createBeanDiscoverService propagates primary failures without fallback', async () => {
   const primaryCalls: unknown[] = [];
   const fallbackCalls: unknown[] = [];
 
@@ -226,22 +226,9 @@ test('createBeanDiscoverService returns fallback payload when main path throws',
     country: 'Ethiopia',
   };
 
-  const result = await service.getBeanDiscoverPayload(filters);
-
-  assert.equal(result.editorial.title, 'Fallback path');
-  assert.equal(result.editorial.mode, 'fallback');
-  assert.deepEqual(result.processBaseOptions, fallbackPayloadFixture.processBaseOptions);
-  assert.deepEqual(result.processStyleOptions, fallbackPayloadFixture.processStyleOptions);
-  assert.deepEqual(result.continentOptions, fallbackPayloadFixture.continentOptions);
-  assert.deepEqual(result.countryOptions, fallbackPayloadFixture.countryOptions);
-  assert.deepEqual(result.resultSummary, fallbackPayloadFixture.resultSummary);
+  await assert.rejects(service.getBeanDiscoverPayload(filters), /primary_failed/);
   assert.equal(primaryCalls.length, 1);
-  assert.equal(fallbackCalls.length, 1);
-  assert.equal((fallbackCalls[0] as typeof filters).q, 'berry');
-  assert.equal((fallbackCalls[0] as typeof filters).processBase, 'washed');
-  assert.equal((fallbackCalls[0] as typeof filters).processStyle, 'anaerobic');
-  assert.equal((fallbackCalls[0] as typeof filters).continent, 'africa');
-  assert.equal((fallbackCalls[0] as typeof filters).country, 'Ethiopia');
+  assert.equal(fallbackCalls.length, 0);
 });
 
 test('buildEditorialReason keeps country, process, and fallback copy stable', () => {

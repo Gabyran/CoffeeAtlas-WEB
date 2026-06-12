@@ -50,7 +50,7 @@ async function fetchRoasterAggregates(roasterIds: string[]): Promise<Map<string,
   if (error) throw createCatalogError(`failed_to_load_roaster_aggregates:${error.message}`);
 
   const counts = new Map<string, RoasterAggregate>();
-  for (const row of data ?? []) {
+  for (const row of (data ?? []) as RoasterAggregateRow[]) {
     if (typeof row.roaster_id !== 'string' || row.roaster_id.length === 0) continue;
     const aggregate = counts.get(row.roaster_id) ?? createEmptyRoasterAggregate();
     aggregate.beanCount += 1;
@@ -315,9 +315,9 @@ export async function getRoastersByIds(ids: string[]): Promise<Roaster[]> {
     .in('id', ids);
 
   if (error) throw createCatalogError(`failed_to_load_roasters_by_ids:${error.message}`);
-  if (!data || data.length === 0) return [];
+  const rows = (data ?? []) as RoasterRow[];
+  if (rows.length === 0) return [];
 
-  const rows = data as RoasterRow[];
   const counts = await fetchRoasterAggregates(rows.map((row) => row.id));
   const roasterMap = new Map(
     rows.map((row) => [row.id, mapRoaster(row, counts.get(row.id) ?? createEmptyRoasterAggregate())])

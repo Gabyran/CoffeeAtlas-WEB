@@ -8,7 +8,7 @@ export type ProcessMethod = 'WASHED' | 'NATURAL' | 'HONEY' | 'ANAEROBIC' | 'OTHE
 export interface ApiHealthStatus {
   service: string;
   ts: string;
-  supabaseConfigured: boolean;
+  databaseConfigured: boolean;
   wechatConfigured: boolean;
   jwtConfigured: boolean;
 }

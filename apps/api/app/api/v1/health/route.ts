@@ -1,5 +1,5 @@
 import { apiSuccess } from '@/lib/server/api-helpers';
-import { hasSupabaseServerEnv } from '@/lib/supabase';
+import { hasDatabaseEnv } from '@/lib/server/database';
 
 function hasWechatConfig() {
   return Boolean(process.env.WECHAT_APP_ID && process.env.WECHAT_APP_SECRET);
@@ -13,7 +13,7 @@ export async function GET() {
   return apiSuccess({
     service: 'coffeeatlas-web',
     ts: new Date().toISOString(),
-    supabaseConfigured: hasSupabaseServerEnv,
+    databaseConfigured: hasDatabaseEnv(),
     wechatConfigured: hasWechatConfig(),
     jwtConfigured: hasJwtConfig(),
   });
